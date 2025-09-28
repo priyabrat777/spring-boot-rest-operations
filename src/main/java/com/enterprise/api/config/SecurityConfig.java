@@ -79,7 +79,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/captcha/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/captcha/validate").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/captcha/**").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/api/captcha/**").permitAll()
                 
                 // Actuator endpoints
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()

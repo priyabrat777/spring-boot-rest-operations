@@ -5,6 +5,7 @@
  * - Authentication requests
  * - User management requests
  * - File upload requests
+ * - CAPTCHA validation requests
  * - Batch job requests
  */
 package com.enterprise.api.dto.request;

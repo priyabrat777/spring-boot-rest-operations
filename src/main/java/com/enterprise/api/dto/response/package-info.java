@@ -5,6 +5,7 @@
  * - Authentication responses
  * - User management responses
  * - File operation responses
+ * - CAPTCHA operation responses
  * - Error responses
  * - Batch job responses
  */
