@@ -1,0 +1,59 @@
+# Development environment configuration
+spring:
+  datasource:
+    url: jdbc:h2:mem:devdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  
+  security:
+    user:
+      name: dev
+      password: dev
+      roles: ADMIN
+
+# Logging for development
+logging:
+  level:
+    com.enterprise.api: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+
+# Development specific settings
+app:
+  jwt:
+    secret: devSecretKeyForDevelopmentOnly
+    expiration: 3600000 # 1 hour for development
+  
+  file:
+    upload-dir: ./dev-uploads
+  
+  cors:
+    allowed-origins: "*"
+
+# Enable all actuator endpoints for development
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

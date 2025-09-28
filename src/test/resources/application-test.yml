@@ -1,0 +1,45 @@
+# Test configuration for unit and integration tests
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: embedded
+
+# Minimal logging for tests
+logging:
+  level:
+    com.enterprise.api: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+    org.testcontainers: INFO
+
+# Test specific application settings
+app:
+  jwt:
+    secret: testSecretKeyForTestingOnly
+    expiration: 60000 # 1 minute for fast test execution
+  
+  file:
+    upload-dir: ./test-uploads
+    max-size: 1048576 # 1MB for tests
+  
+  captcha:
+    expiration: 60000 # 1 minute for tests
+  
+  otp:
+    expiration: 60000 # 1 minute for tests

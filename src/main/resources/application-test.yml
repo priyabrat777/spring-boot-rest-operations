@@ -1,0 +1,61 @@
+# Test environment configuration
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: embedded
+  
+  security:
+    user:
+      name: test
+      password: test
+      roles: ADMIN
+
+# Minimal logging for tests
+logging:
+  level:
+    com.enterprise.api: WARN
+    org.springframework: WARN
+    org.hibernate: WARN
+    org.testcontainers: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Test specific settings
+app:
+  jwt:
+    secret: testSecretKeyForTestingOnly
+    expiration: 60000 # 1 minute for fast test execution
+    refresh-expiration: 300000 # 5 minutes for tests
+  
+  file:
+    upload-dir: ./test-uploads
+    max-size: 1048576 # 1MB for tests
+  
+  captcha:
+    expiration: 60000 # 1 minute for tests
+  
+  otp:
+    expiration: 60000 # 1 minute for tests
+
+# Disable actuator endpoints for tests
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
