@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -286,6 +287,112 @@ public class AuthServiceImpl implements AuthService {
         if (!user.isCredentialsNonExpired()) {
             throw new AuthenticationException("Credentials have expired") {};
         }
+    }
+
+    @Override
+    public boolean changeCurrentUserPassword(String currentPassword, String newPassword, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            logger.warn("Attempt to change password without authentication");
+            return false;
+        }
+
+        try {
+            CustomUserPrincipal userPrincipal = (CustomUserPrincipal) authentication.getPrincipal();
+            User user = userRepository.findByIdActive(userPrincipal.getId())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+            // Verify current password
+            if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                logger.warn("Invalid current password for user: {}", user.getUsername());
+                return false;
+            }
+
+            // Validate new password (you might want to add password strength validation)
+            if (newPassword == null || newPassword.trim().length() < 8) {
+                logger.warn("New password does not meet requirements for user: {}", user.getUsername());
+                return false;
+            }
+
+            // Update password
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+
+            logger.info("Password changed successfully for user: {}", user.getUsername());
+            return true;
+
+        } catch (Exception e) {
+            logger.error("Failed to change password for user", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean updateCurrentUserProfile(Map<String, Object> profileData, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            logger.warn("Attempt to update profile without authentication");
+            return false;
+        }
+
+        try {
+            CustomUserPrincipal userPrincipal = (CustomUserPrincipal) authentication.getPrincipal();
+            User user = userRepository.findByIdActive(userPrincipal.getId())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+            boolean updated = false;
+
+            // Update allowed profile fields
+            if (profileData.containsKey("firstName")) {
+                String firstName = (String) profileData.get("firstName");
+                if (firstName != null && !firstName.equals(user.getFirstName())) {
+                    user.setFirstName(firstName.trim());
+                    updated = true;
+                }
+            }
+
+            if (profileData.containsKey("lastName")) {
+                String lastName = (String) profileData.get("lastName");
+                if (lastName != null && !lastName.equals(user.getLastName())) {
+                    user.setLastName(lastName.trim());
+                    updated = true;
+                }
+            }
+
+            if (profileData.containsKey("email")) {
+                String email = (String) profileData.get("email");
+                if (email != null && !email.equals(user.getEmail())) {
+                    // Validate email format and uniqueness
+                    if (isValidEmail(email) && !userRepository.existsByEmailAndIdNot(email, user.getId())) {
+                        user.setEmail(email.trim().toLowerCase());
+                        updated = true;
+                    } else {
+                        logger.warn("Invalid or duplicate email for user: {}", user.getUsername());
+                        return false;
+                    }
+                }
+            }
+
+            if (updated) {
+                userRepository.save(user);
+                logger.info("Profile updated successfully for user: {}", user.getUsername());
+                return true;
+            }
+
+            return true; // No changes needed
+        } catch (Exception e) {
+            logger.error("Failed to update profile for user", e);
+            return false;
+        }
+    }
+
+    /**
+     * Validates email format.
+     * 
+     * @param email the email to validate
+     * @return true if email is valid
+     */
+    private boolean isValidEmail(String email) {
+        return email != null && 
+               email.matches("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$");
     }
 
     /**

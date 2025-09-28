@@ -3,7 +3,6 @@ package com.enterprise.api.audit;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
@@ -14,7 +13,6 @@ import java.util.Optional;
  * This component integrates with Spring Security to automatically capture
  * the currently authenticated user for audit fields.
  */
-@Component
 public class AuditAware implements AuditorAware<String> {
 
     private static final String SYSTEM_USER = "SYSTEM";

@@ -6,6 +6,8 @@ import com.enterprise.api.dto.response.AuthResponse;
 import com.enterprise.api.dto.response.TokenResponse;
 import org.springframework.security.core.Authentication;
 
+import java.util.Map;
+
 /**
  * Service interface for authentication operations.
  * Handles login, logout, token refresh, and authentication validation.
@@ -94,4 +96,23 @@ public interface AuthService {
      * @return true if user has the permission, false otherwise
      */
     boolean hasPermission(Authentication authentication, String resource, String action);
+
+    /**
+     * Changes the current user's password.
+     * 
+     * @param currentPassword the current password
+     * @param newPassword the new password
+     * @param authentication the current authentication
+     * @return true if password was changed successfully, false otherwise
+     */
+    boolean changeCurrentUserPassword(String currentPassword, String newPassword, Authentication authentication);
+
+    /**
+     * Updates the current user's profile information.
+     * 
+     * @param profileData the profile data to update
+     * @param authentication the current authentication
+     * @return true if profile was updated successfully, false otherwise
+     */
+    boolean updateCurrentUserProfile(Map<String, Object> profileData, Authentication authentication);
 }

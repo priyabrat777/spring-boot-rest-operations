@@ -309,4 +309,14 @@ public interface UserRepository extends BaseRepository<User, Long> {
      * @return true if email exists
      */
     boolean existsByEmailAndDeletedFalse(String email);
+
+    /**
+     * Check if email exists for a different user (excluding the specified ID).
+     * 
+     * @param email the email to check
+     * @param id the user ID to exclude
+     * @return true if email exists for another user
+     */
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.email = :email AND u.id != :id AND u.deleted = false")
+    boolean existsByEmailAndIdNot(@Param("email") String email, @Param("id") Long id);
 }

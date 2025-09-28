@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -40,6 +41,16 @@ public interface UserService {
      * @return the updated user response
      */
     UserResponse updateUser(Long userId, UpdateUserRequest updateUserRequest, Authentication authentication);
+
+    /**
+     * Partially updates a user with only provided fields.
+     * 
+     * @param userId the user ID to update
+     * @param partialUpdateData the partial update data
+     * @param authentication the current authentication for authorization
+     * @return the updated user response
+     */
+    UserResponse partialUpdateUser(Long userId, Map<String, Object> partialUpdateData, Authentication authentication);
 
     /**
      * Gets a user by ID with RBAC filtering.

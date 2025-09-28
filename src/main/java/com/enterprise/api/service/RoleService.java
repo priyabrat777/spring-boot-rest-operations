@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -38,6 +39,26 @@ public interface RoleService {
      * @return the updated role response
      */
     RoleResponse updateRole(Long roleId, UpdateRoleRequest updateRoleRequest, Authentication authentication);
+
+    /**
+     * Partially updates a role with only provided fields.
+     * 
+     * @param roleId the role ID to update
+     * @param partialUpdateData the partial update data
+     * @param authentication the current authentication for authorization
+     * @return the updated role response
+     */
+    RoleResponse partialUpdateRole(Long roleId, Map<String, Object> partialUpdateData, Authentication authentication);
+
+    /**
+     * Updates role status (enabled/disabled).
+     * 
+     * @param roleId the role ID
+     * @param enabled the new enabled status
+     * @param authentication the current authentication for authorization
+     * @return true if updated successfully
+     */
+    boolean updateRoleStatus(Long roleId, boolean enabled, Authentication authentication);
 
     /**
      * Gets a role by ID.

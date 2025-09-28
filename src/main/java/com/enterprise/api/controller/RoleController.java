@@ -4,6 +4,7 @@ import com.enterprise.api.dto.request.CreateRoleRequest;
 import com.enterprise.api.dto.request.UpdateRoleRequest;
 import com.enterprise.api.dto.response.RoleResponse;
 import com.enterprise.api.service.RoleService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -403,26 +404,144 @@ public class RoleController {
     }
 
     /**
-     * Handles OPTIONS requests for CORS preflight.
+     * Partially updates a role with only provided fields.
      * 
-     * @return allowed methods
+     * @param roleId the role ID to update
+     * @param partialUpdateRequest the partial update request
+     * @param authentication the current authentication
+     * @return the updated role response
+     */
+    @PatchMapping("/{roleId}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ROLE_UPDATE')")
+    public ResponseEntity<RoleResponse> partialUpdateRole(
+            @PathVariable Long roleId,
+            @RequestBody Map<String, Object> partialUpdateRequest,
+            Authentication authentication) {
+        
+        logger.info("Partially updating role with ID: {} by user: {}", roleId, authentication.getName());
+        
+        try {
+            RoleResponse roleResponse = roleService.partialUpdateRole(roleId, partialUpdateRequest, authentication);
+            logger.info("Role partially updated successfully with ID: {} by user: {}", roleId, authentication.getName());
+            return ResponseEntity.ok(roleResponse);
+        } catch (Exception e) {
+            logger.error("Failed to partially update role with ID: {} by user: {}", roleId, authentication.getName(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Updates role status (enabled/disabled).
+     * 
+     * @param roleId the role ID
+     * @param statusRequest the status update request
+     * @param authentication the current authentication
+     * @return success message
+     */
+    @PatchMapping("/{roleId}/status")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ROLE_UPDATE')")
+    public ResponseEntity<Map<String, Object>> updateRoleStatus(
+            @PathVariable Long roleId,
+            @RequestBody Map<String, Boolean> statusRequest,
+            Authentication authentication) {
+        
+        boolean enabled = statusRequest.getOrDefault("enabled", true);
+        logger.info("Updating role status for ID: {} to enabled: {} by user: {}", 
+                roleId, enabled, authentication.getName());
+        
+        try {
+            boolean success = roleService.updateRoleStatus(roleId, enabled, authentication);
+            if (success) {
+                logger.info("Role status updated successfully for ID: {} by user: {}", 
+                        roleId, authentication.getName());
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Role status updated successfully",
+                    "roleId", roleId,
+                    "enabled", enabled
+                ));
+            } else {
+                logger.warn("Failed to update role status for ID: {} by user: {}", 
+                        roleId, authentication.getName());
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Failed to update role status"
+                ));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to update role status for ID: {} by user: {}", 
+                    roleId, authentication.getName(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Handles OPTIONS requests for CORS preflight and method discovery.
+     * 
+     * @param request the HTTP request
+     * @return allowed methods and CORS headers
      */
     @RequestMapping(method = RequestMethod.OPTIONS)
-    public ResponseEntity<Void> handleOptions() {
+    public ResponseEntity<Void> handleOptions(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        
+        // Determine allowed methods based on endpoint pattern
+        String allowedMethods;
+        if (requestURI.matches(".*/roles/\\d+/permissions") || 
+            requestURI.matches(".*/roles/\\d+/status")) {
+            allowedMethods = "PATCH, DELETE, OPTIONS, HEAD";
+        } else if (requestURI.matches(".*/roles/\\d+")) {
+            allowedMethods = "GET, PUT, PATCH, DELETE, OPTIONS, HEAD";
+        } else if (requestURI.endsWith("/roles/search") || 
+                   requestURI.endsWith("/roles/system") || 
+                   requestURI.endsWith("/roles/custom") ||
+                   requestURI.matches(".*/roles/name/.*")) {
+            allowedMethods = "GET, OPTIONS, HEAD";
+        } else if (requestURI.endsWith("/roles")) {
+            allowedMethods = "GET, POST, OPTIONS, HEAD";
+        } else {
+            allowedMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD";
+        }
+        
         return ResponseEntity.ok()
-                .header("Allow", "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD")
+                .header("Allow", allowedMethods)
+                .header("Access-Control-Allow-Methods", allowedMethods)
+                .header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With, Accept, Origin")
+                .header("Access-Control-Max-Age", "3600")
                 .build();
     }
 
     /**
-     * Handles HEAD requests for endpoint availability.
+     * Handles HEAD requests for endpoint availability and metadata.
      * 
+     * @param request the HTTP request
      * @return response headers without body
      */
     @RequestMapping(method = RequestMethod.HEAD)
-    public ResponseEntity<Void> handleHead() {
-        return ResponseEntity.ok()
+    public ResponseEntity<Void> handleHead(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok()
                 .header("Content-Type", "application/json")
-                .build();
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0");
+        
+        // Add endpoint-specific headers
+        if (requestURI.matches(".*/roles/\\d+")) {
+            response.header("X-Resource-Type", "role")
+                   .header("X-Supports-Partial-Update", "true");
+        } else if (requestURI.endsWith("/roles")) {
+            response.header("X-Resource-Type", "role-collection")
+                   .header("X-Supports-Pagination", "true");
+        } else if (requestURI.endsWith("/search")) {
+            response.header("X-Resource-Type", "role-search")
+                   .header("X-Supports-Pagination", "true");
+        } else if (requestURI.endsWith("/system") || requestURI.endsWith("/custom")) {
+            response.header("X-Resource-Type", "role-filtered-collection")
+                   .header("X-Supports-Pagination", "true");
+        }
+        
+        return response.build();
     }
 }

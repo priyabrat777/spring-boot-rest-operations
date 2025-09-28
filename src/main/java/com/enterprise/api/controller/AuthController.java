@@ -5,6 +5,7 @@ import com.enterprise.api.dto.request.RefreshTokenRequest;
 import com.enterprise.api.dto.response.AuthResponse;
 import com.enterprise.api.dto.response.TokenResponse;
 import com.enterprise.api.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,26 +162,142 @@ public class AuthController {
     }
 
     /**
-     * Handles OPTIONS requests for CORS preflight.
+     * Updates user password using current authentication.
      * 
-     * @return allowed methods
+     * @param passwordRequest the password change request
+     * @param authentication the current authentication
+     * @return success message
+     */
+    @PatchMapping("/password")
+    public ResponseEntity<Map<String, Object>> changePassword(
+            @Valid @RequestBody Map<String, String> passwordRequest,
+            Authentication authentication) {
+        
+        logger.info("Password change request for user: {}", authentication.getName());
+        
+        try {
+            String currentPassword = passwordRequest.get("currentPassword");
+            String newPassword = passwordRequest.get("newPassword");
+            
+            if (currentPassword == null || newPassword == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Current password and new password are required"
+                ));
+            }
+            
+            boolean success = authService.changeCurrentUserPassword(currentPassword, newPassword, authentication);
+            if (success) {
+                logger.info("Password changed successfully for user: {}", authentication.getName());
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Password changed successfully"
+                ));
+            } else {
+                logger.warn("Failed to change password for user: {}", authentication.getName());
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Failed to change password. Current password may be incorrect."
+                ));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to change password for user: {}", authentication.getName(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Updates user profile information partially.
+     * 
+     * @param profileRequest the profile update request
+     * @param authentication the current authentication
+     * @return success message
+     */
+    @PatchMapping("/profile")
+    public ResponseEntity<Map<String, Object>> updateProfile(
+            @RequestBody Map<String, Object> profileRequest,
+            Authentication authentication) {
+        
+        logger.info("Profile update request for user: {}", authentication.getName());
+        
+        try {
+            boolean success = authService.updateCurrentUserProfile(profileRequest, authentication);
+            if (success) {
+                logger.info("Profile updated successfully for user: {}", authentication.getName());
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Profile updated successfully"
+                ));
+            } else {
+                logger.warn("Failed to update profile for user: {}", authentication.getName());
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Failed to update profile"
+                ));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to update profile for user: {}", authentication.getName(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Handles OPTIONS requests for CORS preflight and method discovery.
+     * 
+     * @param request the HTTP request
+     * @return allowed methods and CORS headers
      */
     @RequestMapping(method = RequestMethod.OPTIONS)
-    public ResponseEntity<Void> handleOptions() {
+    public ResponseEntity<Void> handleOptions(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        
+        // Determine allowed methods based on endpoint
+        String allowedMethods;
+        if (requestURI.endsWith("/login") || requestURI.endsWith("/refresh")) {
+            allowedMethods = "POST, OPTIONS, HEAD";
+        } else if (requestURI.endsWith("/logout")) {
+            allowedMethods = "POST, OPTIONS, HEAD";
+        } else if (requestURI.endsWith("/validate") || requestURI.endsWith("/me")) {
+            allowedMethods = "GET, OPTIONS, HEAD";
+        } else if (requestURI.endsWith("/password") || requestURI.endsWith("/profile")) {
+            allowedMethods = "PATCH, OPTIONS, HEAD";
+        } else {
+            allowedMethods = "GET, POST, PATCH, OPTIONS, HEAD";
+        }
+        
         return ResponseEntity.ok()
-                .header("Allow", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+                .header("Allow", allowedMethods)
+                .header("Access-Control-Allow-Methods", allowedMethods)
+                .header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With, Accept, Origin")
+                .header("Access-Control-Max-Age", "3600")
                 .build();
     }
 
     /**
-     * Handles HEAD requests for endpoint availability.
+     * Handles HEAD requests for endpoint availability and metadata.
      * 
+     * @param request the HTTP request
      * @return response headers without body
      */
     @RequestMapping(method = RequestMethod.HEAD)
-    public ResponseEntity<Void> handleHead() {
-        return ResponseEntity.ok()
+    public ResponseEntity<Void> handleHead(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok()
                 .header("Content-Type", "application/json")
-                .build();
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0");
+        
+        // Add endpoint-specific headers
+        if (requestURI.endsWith("/validate") || requestURI.endsWith("/me")) {
+            response.header("X-Endpoint-Type", "authentication-info");
+        } else if (requestURI.endsWith("/login") || requestURI.endsWith("/refresh")) {
+            response.header("X-Endpoint-Type", "authentication-action");
+        } else if (requestURI.endsWith("/password") || requestURI.endsWith("/profile")) {
+            response.header("X-Endpoint-Type", "user-update");
+        }
+        
+        return response.build();
     }
 }

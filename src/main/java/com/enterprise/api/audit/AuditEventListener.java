@@ -8,6 +8,8 @@ import jakarta.persistence.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.AuditorAware;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -46,8 +48,10 @@ public class AuditEventListener {
     }
 
     @Autowired
-    public void setAuditAware(AuditAware auditAware) {
-        AuditEventListener.auditAware = auditAware;
+    public void setAuditAware(@Qualifier("auditAware") AuditorAware<String> auditAware) {
+        if (auditAware instanceof AuditAware) {
+            AuditEventListener.auditAware = (AuditAware) auditAware;
+        }
     }
 
     /**

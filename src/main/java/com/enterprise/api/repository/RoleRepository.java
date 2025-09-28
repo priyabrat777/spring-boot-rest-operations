@@ -245,4 +245,14 @@ public interface RoleRepository extends BaseRepository<Role, Long> {
      */
     @Query("SELECT r FROM Role r WHERE r.systemRole = :systemRole AND r.deleted = false")
     Page<Role> findBySystemRoleActive(@Param("systemRole") boolean systemRole, Pageable pageable);
+
+    /**
+     * Check if role name exists for a different role (excluding the specified ID).
+     * 
+     * @param name the role name to check
+     * @param id the role ID to exclude
+     * @return true if name exists for another role
+     */
+    @Query("SELECT COUNT(r) > 0 FROM Role r WHERE r.name = :name AND r.id != :id AND r.deleted = false")
+    boolean existsByNameAndIdNot(@Param("name") String name, @Param("id") Long id);
 }

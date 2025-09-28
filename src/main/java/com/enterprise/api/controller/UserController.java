@@ -5,6 +5,7 @@ import com.enterprise.api.dto.request.CreateUserRequest;
 import com.enterprise.api.dto.request.UpdateUserRequest;
 import com.enterprise.api.dto.response.UserResponse;
 import com.enterprise.api.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -515,26 +516,97 @@ public class UserController {
     }
 
     /**
-     * Handles OPTIONS requests for CORS preflight.
+     * Partially updates a user with only provided fields.
      * 
-     * @return allowed methods
+     * @param userId the user ID to update
+     * @param partialUpdateRequest the partial update request
+     * @param authentication the current authentication
+     * @return the updated user response
+     */
+    @PatchMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER_MANAGER') or hasAuthority('USER_UPDATE') or #userId == authentication.principal.id")
+    public ResponseEntity<UserResponse> partialUpdateUser(
+            @PathVariable Long userId,
+            @RequestBody Map<String, Object> partialUpdateRequest,
+            Authentication authentication) {
+        
+        logger.info("Partially updating user with ID: {} by user: {}", userId, authentication.getName());
+        
+        try {
+            UserResponse userResponse = userService.partialUpdateUser(userId, partialUpdateRequest, authentication);
+            logger.info("User partially updated successfully with ID: {} by user: {}", userId, authentication.getName());
+            return ResponseEntity.ok(userResponse);
+        } catch (Exception e) {
+            logger.error("Failed to partially update user with ID: {} by user: {}", userId, authentication.getName(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Handles OPTIONS requests for CORS preflight and method discovery.
+     * 
+     * @param request the HTTP request
+     * @return allowed methods and CORS headers
      */
     @RequestMapping(method = RequestMethod.OPTIONS)
-    public ResponseEntity<Void> handleOptions() {
+    public ResponseEntity<Void> handleOptions(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        
+        // Determine allowed methods based on endpoint pattern
+        String allowedMethods;
+        if (requestURI.matches(".*/users/\\d+/status") || 
+            requestURI.matches(".*/users/\\d+/lock") || 
+            requestURI.matches(".*/users/\\d+/password") || 
+            requestURI.matches(".*/users/\\d+/roles")) {
+            allowedMethods = "PATCH, DELETE, OPTIONS, HEAD";
+        } else if (requestURI.matches(".*/users/\\d+")) {
+            allowedMethods = "GET, PUT, PATCH, DELETE, OPTIONS, HEAD";
+        } else if (requestURI.endsWith("/users/search") || 
+                   requestURI.matches(".*/users/role/.*") || 
+                   requestURI.matches(".*/users/username/.*")) {
+            allowedMethods = "GET, OPTIONS, HEAD";
+        } else if (requestURI.endsWith("/users")) {
+            allowedMethods = "GET, POST, OPTIONS, HEAD";
+        } else {
+            allowedMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD";
+        }
+        
         return ResponseEntity.ok()
-                .header("Allow", "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD")
+                .header("Allow", allowedMethods)
+                .header("Access-Control-Allow-Methods", allowedMethods)
+                .header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With, Accept, Origin")
+                .header("Access-Control-Max-Age", "3600")
                 .build();
     }
 
     /**
-     * Handles HEAD requests for endpoint availability.
+     * Handles HEAD requests for endpoint availability and metadata.
      * 
+     * @param request the HTTP request
      * @return response headers without body
      */
     @RequestMapping(method = RequestMethod.HEAD)
-    public ResponseEntity<Void> handleHead() {
-        return ResponseEntity.ok()
+    public ResponseEntity<Void> handleHead(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok()
                 .header("Content-Type", "application/json")
-                .build();
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0");
+        
+        // Add endpoint-specific headers
+        if (requestURI.matches(".*/users/\\d+")) {
+            response.header("X-Resource-Type", "user")
+                   .header("X-Supports-Partial-Update", "true");
+        } else if (requestURI.endsWith("/users")) {
+            response.header("X-Resource-Type", "user-collection")
+                   .header("X-Supports-Pagination", "true");
+        } else if (requestURI.endsWith("/search")) {
+            response.header("X-Resource-Type", "user-search")
+                   .header("X-Supports-Pagination", "true");
+        }
+        
+        return response.build();
     }
 }
