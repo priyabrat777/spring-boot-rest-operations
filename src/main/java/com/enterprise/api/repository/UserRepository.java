@@ -263,4 +263,50 @@ public interface UserRepository extends BaseRepository<User, Long> {
                                    @Param("accountNonExpired") boolean accountNonExpired,
                                    @Param("accountNonLocked") boolean accountNonLocked,
                                    @Param("credentialsNonExpired") boolean credentialsNonExpired);
+
+    /**
+     * Find user by username with roles and permissions eagerly loaded.
+     * Used for authentication to avoid lazy loading issues.
+     * 
+     * @param username the username to search for
+     * @return optional containing the user with roles and permissions
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles r LEFT JOIN FETCH r.permissions WHERE u.username = :username AND u.deleted = false")
+    Optional<User> findByUsernameWithRolesAndPermissions(@Param("username") String username);
+
+    /**
+     * Find user by ID with roles and permissions eagerly loaded.
+     * Used for JWT token validation to avoid lazy loading issues.
+     * 
+     * @param id the user ID to search for
+     * @return optional containing the user with roles and permissions
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles r LEFT JOIN FETCH r.permissions WHERE u.id = :id AND u.deleted = false")
+    Optional<User> findByIdWithRolesAndPermissions(@Param("id") Long id);
+
+    /**
+     * Find user by email with roles and permissions eagerly loaded.
+     * Used for email-based authentication to avoid lazy loading issues.
+     * 
+     * @param email the email to search for
+     * @return optional containing the user with roles and permissions
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles r LEFT JOIN FETCH r.permissions WHERE u.email = :email AND u.deleted = false")
+    Optional<User> findByEmailWithRolesAndPermissions(@Param("email") String email);
+
+    /**
+     * Check if username exists among active users (method name derivation).
+     * 
+     * @param username the username to check
+     * @return true if username exists
+     */
+    boolean existsByUsernameAndDeletedFalse(String username);
+
+    /**
+     * Check if email exists among active users (method name derivation).
+     * 
+     * @param email the email to check
+     * @return true if email exists
+     */
+    boolean existsByEmailAndDeletedFalse(String email);
 }
