@@ -53,7 +53,7 @@ public class CustomUserPrincipal implements UserDetails {
         Set<GrantedAuthority> authorities = user.getRoles().stream()
                 .flatMap(role -> {
                     Set<GrantedAuthority> roleAuthorities = role.getPermissions().stream()
-                            .map(permission -> new SimpleGrantedAuthority("PERMISSION_" + permission.getName()))
+                            .map(permission -> new SimpleGrantedAuthority("PERMISSION_" + permission.getResource().toUpperCase() + "_" + permission.getAction().toUpperCase()))
                             .collect(Collectors.toSet());
                     
                     // Add role authority
