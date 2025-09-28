@@ -2,7 +2,6 @@ package com.enterprise.api.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import org.hibernate.annotations.Where;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -22,7 +21,6 @@ import java.util.Set;
     @Index(name = "idx_user_email", columnList = "email"),
     @Index(name = "idx_user_deleted", columnList = "deleted")
 })
-@Where(clause = "deleted = false")
 public class User extends AuditableEntity {
 
     @Id

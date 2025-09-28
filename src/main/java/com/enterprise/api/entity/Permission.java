@@ -2,7 +2,6 @@ package com.enterprise.api.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import org.hibernate.annotations.Where;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,7 +25,6 @@ import java.util.Set;
         @UniqueConstraint(name = "uk_permission_resource_action", columnNames = {"resource", "action"})
     }
 )
-@Where(clause = "deleted = false")
 public class Permission extends AuditableEntity {
 
     @Id
