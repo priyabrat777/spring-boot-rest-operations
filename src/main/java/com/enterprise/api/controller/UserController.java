@@ -3,8 +3,18 @@ package com.enterprise.api.controller;
 import com.enterprise.api.dto.request.ChangePasswordRequest;
 import com.enterprise.api.dto.request.CreateUserRequest;
 import com.enterprise.api.dto.request.UpdateUserRequest;
+import com.enterprise.api.dto.response.ErrorResponse;
 import com.enterprise.api.dto.response.UserResponse;
 import com.enterprise.api.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -39,6 +49,7 @@ import java.util.Optional;
  * - 4.5: Authentication and authorization error handling
  * - 4.6: Role-based data filtering
  */
+@Tag(name = "User Management", description = "User CRUD operations with role-based access control and data filtering")
 @RestController
 @RequestMapping("/api/v1/users")
 @CrossOrigin(origins = "*", maxAge = 3600)

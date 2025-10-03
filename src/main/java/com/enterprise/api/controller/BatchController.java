@@ -39,9 +39,9 @@ import java.util.Set;
  * 
  * Requirements: 6.4
  */
+@Tag(name = "Batch Processing", description = "Spring Batch job execution and monitoring operations")
 @RestController
 @RequestMapping("/api/v1/batch")
-@Tag(name = "Batch Management", description = "Batch job execution and monitoring operations")
 @SecurityRequirement(name = "bearerAuth")
 public class BatchController {
 

@@ -1,6 +1,7 @@
 package com.enterprise.api.controller;
 
 import com.enterprise.api.dto.request.FileUploadRequest;
+import com.enterprise.api.dto.response.ErrorResponse;
 import com.enterprise.api.dto.response.FileMetadataResponse;
 import com.enterprise.api.dto.response.FileUploadResponse;
 import com.enterprise.api.entity.FileMetadata;
@@ -8,6 +9,15 @@ import com.enterprise.api.entity.User;
 import com.enterprise.api.repository.UserRepository;
 import com.enterprise.api.security.CustomUserPrincipal;
 import com.enterprise.api.service.FileService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +46,7 @@ import java.nio.charset.StandardCharsets;
  * - 1.1-1.8: Complete REST API operations (GET, POST, DELETE, HEAD, OPTIONS)
  * - 4.3: RBAC authorization for file operations
  */
+@Tag(name = "File Management", description = "File upload, download, and metadata management operations with security validation")
 @RestController
 @RequestMapping("/api/files")
 @CrossOrigin(origins = "*", maxAge = 3600)

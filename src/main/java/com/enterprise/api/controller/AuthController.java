@@ -3,8 +3,18 @@ package com.enterprise.api.controller;
 import com.enterprise.api.dto.request.LoginRequest;
 import com.enterprise.api.dto.request.RefreshTokenRequest;
 import com.enterprise.api.dto.response.AuthResponse;
+import com.enterprise.api.dto.response.ErrorResponse;
 import com.enterprise.api.dto.response.TokenResponse;
 import com.enterprise.api.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -29,6 +39,7 @@ import java.util.Map;
  * - 4.4: JWT-based authentication endpoints
  * - 4.5: Authentication error handling
  */
+@Tag(name = "Authentication", description = "Authentication and authorization operations including login, logout, token refresh, and user profile management")
 @RestController
 @RequestMapping("/api/v1/auth")
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -49,8 +60,69 @@ public class AuthController {
      * @param loginRequest the login credentials
      * @return authentication response with tokens and user info
      */
+    @Operation(
+        summary = "User Login",
+        description = "Authenticates a user with username/email and password, returning JWT access and refresh tokens along with user information."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Login successful",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = AuthResponse.class),
+                examples = @ExampleObject(
+                    name = "Successful Login",
+                    value = """
+                        {
+                          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                          "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                          "tokenType": "Bearer",
+                          "expiresIn": 3600,
+                          "user": {
+                            "id": 1,
+                            "username": "john.doe",
+                            "email": "john.doe@example.com",
+                            "roles": ["USER", "ADMIN"]
+                          }
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid credentials",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "Invalid Credentials",
+                    value = """
+                        {
+                          "timestamp": "2024-01-15T10:30:00Z",
+                          "status": 401,
+                          "error": "Unauthorized",
+                          "message": "Invalid username or password",
+                          "path": "/api/v1/auth/login"
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request format",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        )
+    })
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<AuthResponse> login(
+        @Parameter(description = "Login credentials containing username/email and password", required = true)
+        @Valid @RequestBody LoginRequest loginRequest) {
         logger.info("Login attempt for user: {}", loginRequest.getUsernameOrEmail());
         
         try {
@@ -69,8 +141,39 @@ public class AuthController {
      * @param authentication the current authentication
      * @return success message
      */
+    @Operation(
+        summary = "User Logout",
+        description = "Logs out the current authenticated user by invalidating their JWT tokens and clearing session data.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Logout successful",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "Successful Logout",
+                    value = """
+                        {
+                          "message": "Logout successful"
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - Invalid or missing token",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        )
+    })
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(Authentication authentication) {
+    public ResponseEntity<Map<String, String>> logout(
+        @Parameter(hidden = true) Authentication authentication) {
         logger.info("Logout request for user: {}", authentication.getName());
         
         try {
@@ -89,8 +192,43 @@ public class AuthController {
      * @param refreshTokenRequest the refresh token request
      * @return new token response
      */
+    @Operation(
+        summary = "Refresh Access Token",
+        description = "Generates a new access token using a valid refresh token. The refresh token must not be expired or revoked."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Token refreshed successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = TokenResponse.class),
+                examples = @ExampleObject(
+                    name = "Token Refresh Success",
+                    value = """
+                        {
+                          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                          "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                          "tokenType": "Bearer",
+                          "expiresIn": 3600
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid or expired refresh token",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        )
+    })
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+    public ResponseEntity<TokenResponse> refreshToken(
+        @Parameter(description = "Refresh token request containing the refresh token", required = true)
+        @Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
         logger.info("Token refresh request received");
         
         try {
@@ -109,8 +247,50 @@ public class AuthController {
      * @param authentication the current authentication
      * @return authentication status
      */
+    @Operation(
+        summary = "Validate Token",
+        description = "Validates the current JWT token and returns authentication status along with user information.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Token validation result",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "Valid Token",
+                    value = """
+                        {
+                          "valid": true,
+                          "userId": 1,
+                          "username": "john.doe",
+                          "authenticated": true
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid token",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "Invalid Token",
+                    value = """
+                        {
+                          "valid": false,
+                          "error": "Invalid token"
+                        }
+                        """
+                )
+            )
+        )
+    })
     @GetMapping("/validate")
-    public ResponseEntity<Map<String, Object>> validateToken(Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> validateToken(
+        @Parameter(hidden = true) Authentication authentication) {
         logger.debug("Token validation request for user: {}", authentication.getName());
         
         try {
@@ -139,8 +319,45 @@ public class AuthController {
      * @param authentication the current authentication
      * @return current user info
      */
+    @Operation(
+        summary = "Get Current User",
+        description = "Retrieves detailed information about the currently authenticated user including roles and permissions.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Current user information",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "Current User Info",
+                    value = """
+                        {
+                          "id": 1,
+                          "username": "john.doe",
+                          "authorities": [
+                            {"authority": "ROLE_USER"},
+                            {"authority": "ROLE_ADMIN"}
+                          ],
+                          "authenticated": true
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - Invalid or missing token",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        )
+    })
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> getCurrentUser(Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> getCurrentUser(
+        @Parameter(hidden = true) Authentication authentication) {
         logger.debug("Current user info request for: {}", authentication.getName());
         
         try {

@@ -110,8 +110,39 @@ logging:
 springdoc:
   api-docs:
     path: /api-docs
+    enabled: true
   swagger-ui:
     path: /swagger-ui.html
+    enabled: true
     operationsSorter: method
     tagsSorter: alpha
+    tryItOutEnabled: true
+    filter: true
+    displayRequestDuration: true
+    displayOperationId: false
+    defaultModelsExpandDepth: 1
+    defaultModelExpandDepth: 1
+    docExpansion: none
+    persistAuthorization: true
+    supportedSubmitMethods: ["get", "post", "put", "delete", "patch", "head", "options"]
   show-actuator: true
+  show-login-endpoint: true
+  group-configs:
+    - group: 'authentication'
+      display-name: 'Authentication APIs'
+      paths-to-match: '/api/v1/auth/**'
+    - group: 'user-management'
+      display-name: 'User Management APIs'
+      paths-to-match: '/api/v1/users/**'
+    - group: 'file-management'
+      display-name: 'File Management APIs'
+      paths-to-match: '/api/files/**'
+    - group: 'security-features'
+      display-name: 'Security Features APIs'
+      paths-to-match: '/api/captcha/**,/api/v1/otp/**'
+    - group: 'batch-processing'
+      display-name: 'Batch Processing APIs'
+      paths-to-match: '/api/v1/batch/**'
+    - group: 'role-management'
+      display-name: 'Role Management APIs'
+      paths-to-match: '/api/v1/roles/**'

@@ -2,7 +2,16 @@ package com.enterprise.api.controller;
 
 import com.enterprise.api.dto.request.CaptchaValidationRequest;
 import com.enterprise.api.dto.response.CaptchaResponse;
+import com.enterprise.api.dto.response.ErrorResponse;
 import com.enterprise.api.service.CaptchaService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +30,7 @@ import java.util.UUID;
  * REST Controller for CAPTCHA operations.
  * Provides endpoints for generating visual challenges and validating responses.
  */
+@Tag(name = "CAPTCHA", description = "CAPTCHA generation and validation for bot protection")
 @RestController
 @RequestMapping("/api/captcha")
 public class CaptchaController {

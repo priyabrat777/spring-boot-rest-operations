@@ -2,9 +2,18 @@ package com.enterprise.api.controller;
 
 import com.enterprise.api.dto.request.OtpGenerationRequest;
 import com.enterprise.api.dto.request.OtpValidationRequest;
+import com.enterprise.api.dto.response.ErrorResponse;
 import com.enterprise.api.dto.response.OtpGenerationResponse;
 import com.enterprise.api.dto.response.OtpValidationResponse;
 import com.enterprise.api.service.OtpService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -21,6 +30,7 @@ import java.util.Map;
  * REST controller for OTP (One-Time Password) operations.
  * Provides endpoints for generating and validating OTPs with rate limiting.
  */
+@Tag(name = "OTP (One-Time Password)", description = "OTP generation and validation for secure authentication workflows")
 @RestController
 @RequestMapping("/api/v1/otp")
 @CrossOrigin(origins = "*", maxAge = 3600)
