@@ -36,6 +36,9 @@ public class AuditEventListener {
     private static AuditService auditService;
     private static ObjectMapper objectMapper;
     private static AuditAware auditAware;
+    
+    // ThreadLocal to store old values before update
+    private static final ThreadLocal<Map<String, Object>> oldValuesHolder = new ThreadLocal<>();
 
     @Autowired
     public void setAuditService(AuditService auditService) {
@@ -69,17 +72,40 @@ public class AuditEventListener {
     }
 
     /**
+     * Called before an entity is updated to capture old values.
+     */
+    @PreUpdate
+    public void onPreUpdate(Object entity) {
+        if (entity instanceof AuditableEntity auditableEntity) {
+            try {
+                // Store old values in ThreadLocal for use in PostUpdate
+                Map<String, Object> oldValues = entityToMap(auditableEntity);
+                oldValuesHolder.set(oldValues);
+            } catch (Exception e) {
+                logger.error("Failed to capture old values for entity update: {}", entity.getClass().getSimpleName(), e);
+            }
+        }
+    }
+
+    /**
      * Called after an entity is updated.
      */
     @PostUpdate
     public void onPostUpdate(Object entity) {
         if (entity instanceof AuditableEntity auditableEntity) {
             try {
-                // Note: In a real implementation, you would need to capture the old values
-                // This could be done using @PreUpdate and storing in ThreadLocal
-                createAuditLog(auditableEntity, AuditLog.AuditOperation.UPDATE, null, entityToMap(auditableEntity));
+                Map<String, Object> oldValues = oldValuesHolder.get();
+                Map<String, Object> newValues = entityToMap(auditableEntity);
+                
+                createAuditLog(auditableEntity, AuditLog.AuditOperation.UPDATE, oldValues, newValues);
+                
+                // Clean up ThreadLocal
+                oldValuesHolder.remove();
             } catch (Exception e) {
                 logger.error("Failed to create audit log for entity update: {}", entity.getClass().getSimpleName(), e);
+            } finally {
+                // Ensure ThreadLocal is cleaned up even if there's an exception
+                oldValuesHolder.remove();
             }
         }
     }

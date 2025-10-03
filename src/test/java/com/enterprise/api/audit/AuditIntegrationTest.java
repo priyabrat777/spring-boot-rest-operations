@@ -180,6 +180,127 @@ class AuditIntegrationTest {
         assertThat(restoredEntity.isDeleted()).isFalse();
     }
 
+    @Test
+    void auditService_FindByPerformedByAndDateRange_ShouldReturnFilteredResults() {
+        // Given
+        LocalDateTime startDate = LocalDateTime.now().minusDays(1);
+        LocalDateTime endDate = LocalDateTime.now().plusDays(1);
+        
+        auditService.createAuditLog("User", "1", AuditLog.AuditOperation.CREATE, null, "{}", "testuser");
+        auditService.createAuditLog("User", "2", AuditLog.AuditOperation.UPDATE, "{}", "{}", "otheruser");
+        auditService.createAuditLog("User", "3", AuditLog.AuditOperation.DELETE, "{}", null, "testuser");
+
+        // When
+        var results = auditService.findByPerformedByAndDateRange("testuser", startDate, endDate, 
+                org.springframework.data.domain.PageRequest.of(0, 10));
+
+        // Then
+        assertThat(results.getContent()).hasSize(2);
+        assertThat(results.getContent()).allMatch(log -> "testuser".equals(log.getPerformedBy()));
+    }
+
+    @Test
+    void auditService_FindByOperation_ShouldReturnOperationSpecificLogs() {
+        // Given
+        auditService.createAuditLog("User", "1", AuditLog.AuditOperation.CREATE, null, "{}", "testuser");
+        auditService.createAuditLog("User", "2", AuditLog.AuditOperation.UPDATE, "{}", "{}", "testuser");
+        auditService.createAuditLog("User", "3", AuditLog.AuditOperation.CREATE, null, "{}", "testuser");
+
+        // When
+        var results = auditService.findByOperation(AuditLog.AuditOperation.CREATE, 
+                org.springframework.data.domain.PageRequest.of(0, 10));
+
+        // Then
+        assertThat(results.getContent()).hasSize(2);
+        assertThat(results.getContent()).allMatch(log -> AuditLog.AuditOperation.CREATE.equals(log.getOperation()));
+    }
+
+    @Test
+    void auditService_FindByDateRange_ShouldReturnDateFilteredLogs() {
+        // Given
+        LocalDateTime startDate = LocalDateTime.now().minusHours(1);
+        LocalDateTime endDate = LocalDateTime.now().plusHours(1);
+        
+        auditService.createAuditLog("User", "1", AuditLog.AuditOperation.CREATE, null, "{}", "testuser");
+        auditService.createAuditLog("User", "2", AuditLog.AuditOperation.UPDATE, "{}", "{}", "testuser");
+
+        // When
+        var results = auditService.findByDateRange(startDate, endDate, 
+                org.springframework.data.domain.PageRequest.of(0, 10));
+
+        // Then
+        assertThat(results.getContent()).hasSize(2);
+        assertThat(results.getContent()).allMatch(log -> 
+                log.getPerformedAt().isAfter(startDate) && log.getPerformedAt().isBefore(endDate));
+    }
+
+    @Test
+    void auditService_GetAuditStatsByOperation_ShouldReturnOperationCounts() {
+        // Given
+        auditService.createAuditLog("User", "1", AuditLog.AuditOperation.CREATE, null, "{}", "testuser");
+        auditService.createAuditLog("User", "2", AuditLog.AuditOperation.CREATE, null, "{}", "testuser");
+        auditService.createAuditLog("User", "3", AuditLog.AuditOperation.UPDATE, "{}", "{}", "testuser");
+
+        // When
+        var stats = auditService.getAuditStatsByOperation();
+
+        // Then
+        assertThat(stats).containsEntry("CREATE", 2L);
+        assertThat(stats).containsEntry("UPDATE", 1L);
+    }
+
+    @Test
+    void auditService_GetAuditStatsByUser_ShouldReturnUserCounts() {
+        // Given
+        auditService.createAuditLog("User", "1", AuditLog.AuditOperation.CREATE, null, "{}", "user1");
+        auditService.createAuditLog("User", "2", AuditLog.AuditOperation.CREATE, null, "{}", "user1");
+        auditService.createAuditLog("User", "3", AuditLog.AuditOperation.UPDATE, "{}", "{}", "user2");
+
+        // When
+        var stats = auditService.getAuditStatsByUser();
+
+        // Then
+        assertThat(stats).containsEntry("user1", 2L);
+        assertThat(stats).containsEntry("user2", 1L);
+    }
+
+    @Test
+    void auditService_FindMostActiveUsers_ShouldReturnTopUsers() {
+        // Given
+        LocalDateTime startDate = LocalDateTime.now().minusDays(1);
+        LocalDateTime endDate = LocalDateTime.now().plusDays(1);
+        
+        auditService.createAuditLog("User", "1", AuditLog.AuditOperation.CREATE, null, "{}", "activeuser");
+        auditService.createAuditLog("User", "2", AuditLog.AuditOperation.UPDATE, "{}", "{}", "activeuser");
+        auditService.createAuditLog("User", "3", AuditLog.AuditOperation.DELETE, "{}", null, "activeuser");
+        auditService.createAuditLog("User", "4", AuditLog.AuditOperation.CREATE, null, "{}", "normaluser");
+
+        // When
+        var topUsers = auditService.findMostActiveUsers(startDate, endDate, 2);
+
+        // Then
+        assertThat(topUsers).hasSize(2);
+        assertThat(topUsers).containsEntry("activeuser", 3L);
+        assertThat(topUsers).containsEntry("normaluser", 1L);
+    }
+
+    @Test
+    void auditService_CountFailedOperations_ShouldReturnFailureCount() {
+        // Given
+        LocalDateTime startDate = LocalDateTime.now().minusDays(1);
+        LocalDateTime endDate = LocalDateTime.now().plusDays(1);
+        
+        auditService.createAuditLog("User", "1", AuditLog.AuditOperation.CREATE, null, "{}", "testuser");
+        auditService.createAuditLog("User", "2", AuditLog.AuditOperation.ACCESS_DENIED, null, null, "testuser");
+        auditService.createAuditLog("User", "3", AuditLog.AuditOperation.ACCESS_DENIED, null, null, "testuser");
+
+        // When
+        long failedCount = auditService.countFailedOperations(startDate, endDate);
+
+        // Then
+        assertThat(failedCount).isEqualTo(2L);
+    }
+
     /**
      * Test entity that extends AuditableEntity for integration testing.
      */

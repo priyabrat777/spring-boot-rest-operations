@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -31,7 +32,6 @@ public class AuditServiceImpl implements AuditService {
 
     private final AuditLogRepository auditLogRepository;
 
-    @Autowired
     public AuditServiceImpl(AuditLogRepository auditLogRepository) {
         this.auditLogRepository = auditLogRepository;
     }
@@ -120,5 +120,120 @@ public class AuditServiceImpl implements AuditService {
         auditLog.setAdditionalInfo(additionalInfo);
         
         return saveAuditLog(auditLog);
+    }
+
+    @Override
+    public Page<AuditLog> findWithFilters(String entityName, String entityId, AuditLog.AuditOperation operation,
+                                         String performedBy, LocalDateTime startDate, LocalDateTime endDate, 
+                                         Pageable pageable) {
+        logger.debug("Finding audit logs with filters - entityName: {}, entityId: {}, operation: {}, performedBy: {}, startDate: {}, endDate: {}", 
+                    entityName, entityId, operation, performedBy, startDate, endDate);
+        return auditLogRepository.findWithFilters(entityName, entityId, operation, performedBy, startDate, endDate, pageable);
+    }
+
+    @Override
+    public Map<String, Long> getAuditStatsByOperation() {
+        logger.debug("Getting audit statistics by operation");
+        List<Object[]> results = auditLogRepository.getAuditStatsByOperation();
+        return results.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> row[0].toString(),
+                    row -> (Long) row[1]
+                ));
+    }
+
+    @Override
+    public Map<String, Long> getAuditStatsByEntityName() {
+        logger.debug("Getting audit statistics by entity name");
+        List<Object[]> results = auditLogRepository.getAuditStatsByEntityName();
+        return results.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> (String) row[0],
+                    row -> (Long) row[1]
+                ));
+    }
+
+    @Override
+    public Map<String, Long> getAuditStatsByUser() {
+        logger.debug("Getting audit statistics by user");
+        List<Object[]> results = auditLogRepository.getAuditStatsByUser();
+        return results.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> (String) row[0],
+                    row -> (Long) row[1]
+                ));
+    }
+
+    @Override
+    public Map<String, Long> getDailyAuditStats(LocalDateTime startDate, LocalDateTime endDate) {
+        logger.debug("Getting daily audit statistics between {} and {}", startDate, endDate);
+        List<Object[]> results = auditLogRepository.getDailyAuditStats(startDate, endDate);
+        return results.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> row[0].toString(),
+                    row -> (Long) row[1]
+                ));
+    }
+
+    @Override
+    public Map<String, Long> findMostActiveUsers(LocalDateTime startDate, LocalDateTime endDate, int limit) {
+        logger.debug("Finding most active users between {} and {} (limit: {})", startDate, endDate, limit);
+        List<Object[]> results = auditLogRepository.findMostActiveUsers(startDate, endDate, limit);
+        return results.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> (String) row[0],
+                    row -> (Long) row[1],
+                    (existing, replacement) -> existing,
+                    java.util.LinkedHashMap::new
+                ));
+    }
+
+    @Override
+    public Map<String, Long> findMostAccessedEntities(LocalDateTime startDate, LocalDateTime endDate, int limit) {
+        logger.debug("Finding most accessed entities between {} and {} (limit: {})", startDate, endDate, limit);
+        List<Object[]> results = auditLogRepository.findMostAccessedEntities(startDate, endDate, limit);
+        return results.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> row[0] + ":" + row[1], // entityName:entityId
+                    row -> (Long) row[2],
+                    (existing, replacement) -> existing,
+                    java.util.LinkedHashMap::new
+                ));
+    }
+
+    @Override
+    public long countFailedOperations(LocalDateTime startDate, LocalDateTime endDate) {
+        logger.debug("Counting failed operations between {} and {}", startDate, endDate);
+        List<AuditLog.AuditOperation> failedOperations = List.of(AuditLog.AuditOperation.ACCESS_DENIED);
+        Page<AuditLog> results = auditLogRepository.findFailedOperations(failedOperations, startDate, endDate, 
+                                                                         org.springframework.data.domain.PageRequest.of(0, 1));
+        return results.getTotalElements();
+    }
+
+    @Override
+    public long countUniqueUsers(LocalDateTime startDate, LocalDateTime endDate) {
+        logger.debug("Counting unique users between {} and {}", startDate, endDate);
+        // This would require a custom query in the repository
+        // For now, we'll use a simplified approach
+        Page<AuditLog> logs = auditLogRepository.findByPerformedAtBetweenOrderByPerformedAtDesc(
+            startDate, endDate, org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE));
+        return logs.getContent().stream()
+                .map(AuditLog::getPerformedBy)
+                .distinct()
+                .count();
+    }
+
+    @Override
+    public long countUniqueIpAddresses(LocalDateTime startDate, LocalDateTime endDate) {
+        logger.debug("Counting unique IP addresses between {} and {}", startDate, endDate);
+        // This would require a custom query in the repository
+        // For now, we'll use a simplified approach
+        Page<AuditLog> logs = auditLogRepository.findByPerformedAtBetweenOrderByPerformedAtDesc(
+            startDate, endDate, org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE));
+        return logs.getContent().stream()
+                .map(AuditLog::getIpAddress)
+                .filter(ip -> ip != null && !ip.isEmpty())
+                .distinct()
+                .count();
     }
 }
