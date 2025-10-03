@@ -2,6 +2,7 @@ package com.enterprise.api.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -143,4 +144,36 @@ public interface BaseRepository<T, ID> extends JpaRepository<T, ID>, JpaSpecific
     @Modifying
     @Query("DELETE FROM #{#entityName} e WHERE e.deleted = true AND e.lastModifiedDate < :cutoffDate")
     int permanentlyDeleteOldSoftDeleted(@Param("cutoffDate") java.time.LocalDateTime cutoffDate);
+
+    /**
+     * Find active entities using Slice for better performance with large datasets.
+     * Slice doesn't calculate total count, making it more efficient for pagination.
+     * 
+     * @param pageable pagination information
+     * @return slice of active entities
+     */
+    @Query("SELECT e FROM #{#entityName} e WHERE e.deleted = false")
+    Slice<T> findActiveSlice(Pageable pageable);
+
+    /**
+     * Find entities with cursor-based pagination for very large datasets.
+     * This method uses ID-based pagination which is more efficient than offset-based.
+     * 
+     * @param lastId the last ID from previous page (null for first page)
+     * @param pageable pagination information (size only, offset ignored)
+     * @return page of entities after the given ID
+     */
+    @Query("SELECT e FROM #{#entityName} e WHERE e.deleted = false AND (:lastId IS NULL OR e.id > :lastId) ORDER BY e.id")
+    List<T> findActiveCursorBased(@Param("lastId") ID lastId, Pageable pageable);
+
+    /**
+     * Find entities with optimized count query for large datasets.
+     * Uses separate count query to avoid performance issues with complex joins.
+     * 
+     * @param pageable pagination information
+     * @return page of active entities with optimized count
+     */
+    @Query(value = "SELECT e FROM #{#entityName} e WHERE e.deleted = false",
+           countQuery = "SELECT COUNT(e.id) FROM #{#entityName} e WHERE e.deleted = false")
+    Page<T> findActiveOptimized(Pageable pageable);
 }

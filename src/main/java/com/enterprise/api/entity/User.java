@@ -21,6 +21,20 @@ import java.util.Set;
     @Index(name = "idx_user_email", columnList = "email"),
     @Index(name = "idx_user_deleted", columnList = "deleted")
 })
+@NamedEntityGraphs({
+    @NamedEntityGraph(
+        name = "User.withRoles",
+        attributeNodes = @NamedAttributeNode("roles")
+    ),
+    @NamedEntityGraph(
+        name = "User.withRolesAndPermissions",
+        attributeNodes = @NamedAttributeNode(value = "roles", subgraph = "roles-subgraph"),
+        subgraphs = @NamedSubgraph(
+            name = "roles-subgraph",
+            attributeNodes = @NamedAttributeNode("permissions")
+        )
+    )
+})
 public class User extends AuditableEntity {
 
     @Id

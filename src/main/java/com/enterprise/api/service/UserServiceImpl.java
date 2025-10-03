@@ -1,5 +1,6 @@
 package com.enterprise.api.service;
 
+import com.enterprise.api.config.CacheConfig;
 import com.enterprise.api.dto.request.CreateUserRequest;
 import com.enterprise.api.dto.request.UpdateUserRequest;
 import com.enterprise.api.dto.request.ChangePasswordRequest;
@@ -9,6 +10,9 @@ import com.enterprise.api.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;

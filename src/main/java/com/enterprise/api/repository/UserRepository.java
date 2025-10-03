@@ -3,6 +3,7 @@ package com.enterprise.api.repository;
 import com.enterprise.api.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
@@ -265,34 +266,78 @@ public interface UserRepository extends BaseRepository<User, Long> {
                                    @Param("credentialsNonExpired") boolean credentialsNonExpired);
 
     /**
-     * Find user by username with roles and permissions eagerly loaded.
+     * Find user by username with roles eagerly loaded using entity graph.
+     * 
+     * @param username the username to search for
+     * @return optional containing the user with roles
+     */
+    @EntityGraph("User.withRoles")
+    @Query("SELECT u FROM User u WHERE u.username = :username AND u.deleted = false")
+    Optional<User> findByUsernameWithRoles(@Param("username") String username);
+
+    /**
+     * Find user by ID with roles eagerly loaded using entity graph.
+     * 
+     * @param id the user ID to search for
+     * @return optional containing the user with roles
+     */
+    @EntityGraph("User.withRoles")
+    @Query("SELECT u FROM User u WHERE u.id = :id AND u.deleted = false")
+    Optional<User> findByIdWithRoles(@Param("id") Long id);
+
+    /**
+     * Find user by username with roles and permissions eagerly loaded using entity graph.
      * Used for authentication to avoid lazy loading issues.
      * 
      * @param username the username to search for
      * @return optional containing the user with roles and permissions
      */
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles r LEFT JOIN FETCH r.permissions WHERE u.username = :username AND u.deleted = false")
+    @EntityGraph("User.withRolesAndPermissions")
+    @Query("SELECT u FROM User u WHERE u.username = :username AND u.deleted = false")
     Optional<User> findByUsernameWithRolesAndPermissions(@Param("username") String username);
 
     /**
-     * Find user by ID with roles and permissions eagerly loaded.
+     * Find user by ID with roles and permissions eagerly loaded using entity graph.
      * Used for JWT token validation to avoid lazy loading issues.
      * 
      * @param id the user ID to search for
      * @return optional containing the user with roles and permissions
      */
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles r LEFT JOIN FETCH r.permissions WHERE u.id = :id AND u.deleted = false")
+    @EntityGraph("User.withRolesAndPermissions")
+    @Query("SELECT u FROM User u WHERE u.id = :id AND u.deleted = false")
     Optional<User> findByIdWithRolesAndPermissions(@Param("id") Long id);
 
     /**
-     * Find user by email with roles and permissions eagerly loaded.
+     * Find user by email with roles and permissions eagerly loaded using entity graph.
      * Used for email-based authentication to avoid lazy loading issues.
      * 
      * @param email the email to search for
      * @return optional containing the user with roles and permissions
      */
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles r LEFT JOIN FETCH r.permissions WHERE u.email = :email AND u.deleted = false")
+    @EntityGraph("User.withRolesAndPermissions")
+    @Query("SELECT u FROM User u WHERE u.email = :email AND u.deleted = false")
     Optional<User> findByEmailWithRolesAndPermissions(@Param("email") String email);
+
+    /**
+     * Find all active users with roles using entity graph and pagination.
+     * 
+     * @param pageable pagination information
+     * @return page of users with roles
+     */
+    @EntityGraph("User.withRoles")
+    @Query("SELECT u FROM User u WHERE u.deleted = false")
+    Page<User> findAllActiveWithRoles(Pageable pageable);
+
+    /**
+     * Find users by role name with roles and permissions using entity graph.
+     * 
+     * @param roleName the role name to search for
+     * @param pageable pagination information
+     * @return page of users with roles and permissions
+     */
+    @EntityGraph("User.withRolesAndPermissions")
+    @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.name = :roleName AND u.deleted = false AND r.deleted = false")
+    Page<User> findByRoleNameWithRolesAndPermissions(@Param("roleName") String roleName, Pageable pageable);
 
     /**
      * Check if username exists among active users (method name derivation).
