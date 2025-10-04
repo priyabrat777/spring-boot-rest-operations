@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/storage/upload",
+    "headers": {
+      "Content-Type": {
+        "contains": "multipart/form-data"
+      }
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "fileId": "file-{{randomValue type='UUID'}}",
+      "fileName": "{{request.headers.X-Original-Filename}}",
+      "fileSize": "{{request.headers.Content-Length}}",
+      "contentType": "{{request.headers.X-Content-Type}}",
+      "uploadUrl": "https://storage.example.com/files/file-{{randomValue type='UUID'}}",
+      "downloadUrl": "https://storage.example.com/download/file-{{randomValue type='UUID'}}",
+      "checksum": "sha256:{{randomValue type='ALPHANUMERIC' length=64}}",
+      "timestamp": "{{now format='yyyy-MM-dd HH:mm:ss'}}",
+      "expiresAt": "{{now offset='+7 days' format='yyyy-MM-dd HH:mm:ss'}}"
+    },
+    "transformers": ["response-template"]
+  }
+}

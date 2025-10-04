@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/email/send",
+    "headers": {
+      "Content-Type": {
+        "contains": "application/json"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "messageId": "email-{{randomValue type='UUID'}}",
+      "status": "sent",
+      "recipient": "{{jsonPath request.body '$.recipient'}}",
+      "timestamp": "{{now format='yyyy-MM-dd HH:mm:ss'}}",
+      "deliveryTime": "{{randomValue type='NUMERIC' lower=500 upper=3000}}"
+    },
+    "transformers": ["response-template"]
+  }
+}
