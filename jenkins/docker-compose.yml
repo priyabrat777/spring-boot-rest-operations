@@ -1,0 +1,147 @@
+# Docker Compose for Jenkins CI/CD Environment
+# This sets up Jenkins with all required tools for the Enterprise Spring Boot API pipeline
+
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:2.426.1-lts-jdk21
+    container_name: enterprise-jenkins
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./jenkins-data:/var/jenkins_data
+      - ./setup-jenkins.sh:/usr/local/bin/setup-jenkins.sh
+    environment:
+      - JENKINS_OPTS=--httpPort=8080
+      - JAVA_OPTS=-Xmx2048m -Djenkins.install.runSetupWizard=false
+      - JENKINS_USER=admin
+      - JENKINS_PASS=admin123
+    networks:
+      - jenkins-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  sonarqube:
+    image: sonarqube:10.3.0-community
+    container_name: enterprise-sonarqube
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonarqube
+      - SONAR_JDBC_PASSWORD=sonarqube123
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    networks:
+      - jenkins-network
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  postgres:
+    image: postgres:15.5-alpine
+    container_name: enterprise-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=sonarqube
+      - POSTGRES_USER=sonarqube
+      - POSTGRES_PASSWORD=sonarqube123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - jenkins-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonarqube"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  maven:
+    image: maven:3.9.5-openjdk-21-slim
+    container_name: enterprise-maven
+    volumes:
+      - maven_cache:/root/.m2
+      - ./:/workspace
+    working_dir: /workspace
+    networks:
+      - jenkins-network
+    profiles:
+      - tools
+
+  docker-registry:
+    image: registry:2.8.3
+    container_name: enterprise-registry
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/data
+      - REGISTRY_AUTH=htpasswd
+      - REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm
+      - REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+    volumes:
+      - registry_data:/data
+      - ./registry-auth:/auth
+    networks:
+      - jenkins-network
+    profiles:
+      - registry
+
+  nginx:
+    image: nginx:1.25.3-alpine
+    container_name: enterprise-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - jenkins-network
+    depends_on:
+      - jenkins
+      - sonarqube
+    profiles:
+      - proxy
+
+volumes:
+  jenkins_home:
+    driver: local
+  sonarqube_data:
+    driver: local
+  sonarqube_logs:
+    driver: local
+  sonarqube_extensions:
+    driver: local
+  postgres_data:
+    driver: local
+  maven_cache:
+    driver: local
+  registry_data:
+    driver: local
+
+networks:
+  jenkins-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,0 +1,160 @@
+# Jenkins Pipeline Library Configuration
+# This file defines the shared pipeline library configuration
+
+library:
+  name: "enterprise-pipeline-library"
+  version: "main"
+  retrieval_method: "modern_scm"
+  
+  scm:
+    git:
+      remote: "https://github.com/enterprise/jenkins-pipeline-library.git"
+      credentials_id: "github-credentials"
+      
+  # Library structure
+  structure:
+    vars: "vars/"           # Global variables and functions
+    src: "src/"            # Groovy source code
+    resources: "resources/" # Static resources
+    
+  # Available functions
+  functions:
+    - name: "enterprisePipeline"
+      description: "Main enterprise pipeline function"
+      parameters:
+        - name: "config"
+          type: "Map"
+          required: true
+          description: "Pipeline configuration"
+          
+    - name: "buildApplication"
+      description: "Build Spring Boot application"
+      parameters:
+        - name: "mavenGoals"
+          type: "String"
+          default: "clean compile test package"
+          
+    - name: "runTests"
+      description: "Execute test suites"
+      parameters:
+        - name: "testType"
+          type: "String"
+          options: ["unit", "integration", "performance", "all"]
+          default: "all"
+          
+    - name: "deployApplication"
+      description: "Deploy application to environment"
+      parameters:
+        - name: "environment"
+          type: "String"
+          options: ["staging", "production"]
+          required: true
+        - name: "approvalRequired"
+          type: "Boolean"
+          default: true
+          
+    - name: "sendNotification"
+      description: "Send build notifications"
+      parameters:
+        - name: "status"
+          type: "String"
+          options: ["SUCCESS", "FAILURE", "UNSTABLE", "ABORTED"]
+          required: true
+        - name: "channels"
+          type: "List"
+          default: ["email", "slack"]
+          
+  # Quality gates configuration
+  quality_gates:
+    sonarqube:
+      enabled: true
+      timeout: 5 # minutes
+      fail_on_quality_gate: true
+      
+    code_coverage:
+      enabled: true
+      minimum_coverage: 80
+      fail_below_threshold: true
+      
+    security_scan:
+      enabled: true
+      max_high_vulnerabilities: 0
+      max_medium_vulnerabilities: 5
+      fail_on_vulnerabilities: true
+      
+  # Deployment configuration
+  deployment:
+    staging:
+      auto_deploy: true
+      approval_required: false
+      environment_url: "https://staging-api.enterprise.com"
+      health_check_url: "https://staging-api.enterprise.com/actuator/health"
+      
+    production:
+      auto_deploy: false
+      approval_required: true
+      approvers:
+        - "team-lead@enterprise.com"
+        - "devops-manager@enterprise.com"
+      environment_url: "https://api.enterprise.com"
+      health_check_url: "https://api.enterprise.com/actuator/health"
+      
+  # Notification configuration
+  notifications:
+    email:
+      smtp_server: "smtp.enterprise.com"
+      from_address: "jenkins@enterprise.com"
+      default_recipients:
+        - "devops@enterprise.com"
+        
+    slack:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      default_channel: "#ci-cd"
+      mention_on_failure: "@channel"
+      
+  # Docker configuration
+  docker:
+    registry: "ghcr.io"
+    namespace: "enterprise"
+    build_args:
+      - "BUILD_VERSION=${BUILD_VERSION}"
+      - "BUILD_DATE=${BUILD_DATE}"
+      - "GIT_COMMIT=${GIT_COMMIT}"
+      
+  # Maven configuration
+  maven:
+    version: "3.9.0"
+    java_version: "21"
+    settings_file: "settings.xml"
+    goals:
+      compile: "clean compile"
+      test: "test"
+      package: "package -DskipTests=true"
+      deploy: "deploy -DskipTests=true"
+      
+  # Testing configuration
+  testing:
+    unit_tests:
+      pattern: "src/test/java/**/*Test.java"
+      exclude_pattern: "src/test/java/**/*IntegrationTest.java"
+      
+    integration_tests:
+      pattern: "src/test/java/**/*IntegrationTest.java"
+      profile: "test"
+      
+    performance_tests:
+      pattern: "src/test/java/**/*PerformanceTest.java"
+      profile: "performance"
+      
+  # Artifact management
+  artifacts:
+    retention:
+      builds: 10
+      artifacts: 5
+      days: 30
+      
+    types:
+      - "*.jar"
+      - "*.war"
+      - "target/site/**/*"
+      - "target/*-reports/**/*"

@@ -1,0 +1,80 @@
+# Jenkins Pipeline Configuration
+# This file contains configuration settings for the CI/CD pipeline
+
+pipeline:
+  name: "enterprise-spring-boot-api"
+  description: "Enterprise Spring Boot API CI/CD Pipeline"
+  
+  # Build triggers
+  triggers:
+    scm_polling: "H/5 * * * *"  # Poll SCM every 5 minutes
+    cron_schedule: "H 2 * * 1-5"  # Daily builds at 2 AM on weekdays
+    
+  # Build parameters
+  parameters:
+    - name: "SKIP_TESTS"
+      type: "boolean"
+      default: false
+      description: "Skip running tests during build"
+    - name: "DEPLOY_ENVIRONMENT"
+      type: "choice"
+      choices: ["staging", "production"]
+      default: "staging"
+      description: "Target deployment environment"
+    - name: "FORCE_DEPLOY"
+      type: "boolean"
+      default: false
+      description: "Force deployment even if quality gates fail"
+
+  # Environment variables
+  environment:
+    MAVEN_OPTS: "-Xmx1024m -XX:MaxPermSize=256m"
+    JAVA_HOME: "/usr/lib/jvm/java-21-openjdk"
+    MAVEN_HOME: "/opt/maven"
+    DOCKER_REGISTRY: "ghcr.io"
+    IMAGE_NAME: "enterprise-spring-boot-api"
+    
+  # Quality gates
+  quality_gates:
+    code_coverage:
+      minimum: 80
+      fail_build: true
+    security_vulnerabilities:
+      max_high: 0
+      max_medium: 5
+      fail_build: true
+    sonarqube:
+      quality_gate: "Sonar way"
+      fail_build: true
+      
+  # Notification settings
+  notifications:
+    email:
+      recipients: ["devops@enterprise.com", "team-lead@enterprise.com"]
+      on_success: false
+      on_failure: true
+      on_unstable: true
+    slack:
+      channel: "#ci-cd"
+      on_success: true
+      on_failure: true
+      on_unstable: true
+      
+  # Artifact retention
+  artifacts:
+    keep_builds: 10
+    keep_artifacts: 5
+    
+  # Deployment environments
+  environments:
+    staging:
+      url: "https://staging-api.enterprise.com"
+      namespace: "staging"
+      auto_deploy: true
+      approval_required: false
+    production:
+      url: "https://api.enterprise.com"
+      namespace: "production"
+      auto_deploy: false
+      approval_required: true
+      approvers: ["team-lead@enterprise.com", "devops-manager@enterprise.com"]

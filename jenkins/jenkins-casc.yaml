@@ -1,0 +1,296 @@
+# Jenkins Configuration as Code (JCasC)
+# This file configures Jenkins automatically using the Configuration as Code plugin
+
+jenkins:
+  systemMessage: "Enterprise Spring Boot API - Jenkins CI/CD Server"
+  numExecutors: 4
+  mode: NORMAL
+  scmCheckoutRetryCount: 3
+  
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD:-admin123}"
+          properties:
+            - "hudson.tasks.Mailer$UserProperty":
+                emailAddress: "admin@enterprise.com"
+        - id: "developer"
+          password: "${JENKINS_DEV_PASSWORD:-dev123}"
+          properties:
+            - "hudson.tasks.Mailer$UserProperty":
+                emailAddress: "developer@enterprise.com"
+
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "admin"
+            description: "Jenkins administrators"
+            permissions:
+              - "Overall/Administer"
+            assignments:
+              - "admin"
+          - name: "developer"
+            description: "Developers with build permissions"
+            permissions:
+              - "Overall/Read"
+              - "Job/Build"
+              - "Job/Cancel"
+              - "Job/Read"
+              - "Job/Workspace"
+              - "View/Read"
+            assignments:
+              - "developer"
+
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "MAVEN_OPTS"
+            value: "-Xmx1024m -XX:MaxPermSize=256m"
+          - key: "JAVA_HOME"
+            value: "/usr/lib/jvm/java-21-openjdk"
+          - key: "DOCKER_REGISTRY"
+            value: "ghcr.io"
+
+  clouds:
+    - docker:
+        name: "docker-cloud"
+        dockerApi:
+          dockerHost:
+            uri: "unix:///var/run/docker.sock"
+        templates:
+          - labelString: "docker-agent"
+            dockerTemplateBase:
+              image: "jenkins/agent:latest-jdk21"
+              mounts:
+                - "type=bind,source=/var/run/docker.sock,destination=/var/run/docker.sock"
+            remoteFs: "/home/jenkins/agent"
+            connector:
+              attach:
+                user: "jenkins"
+            instanceCapStr: "2"
+            retentionStrategy:
+              idleMinutes: 5
+
+tool:
+  git:
+    installations:
+      - name: "Default"
+        home: "/usr/bin/git"
+
+  maven:
+    installations:
+      - name: "Maven-3.9.0"
+        home: "/opt/maven"
+        properties:
+          - installSource:
+              installers:
+                - maven:
+                    id: "3.9.5"
+
+  jdk:
+    installations:
+      - name: "JDK-21"
+        home: "/usr/lib/jvm/java-21-openjdk"
+        properties:
+          - installSource:
+              installers:
+                - jdkInstaller:
+                    id: "jdk-21.0.1+12"
+                    acceptLicense: true
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "github-credentials"
+              username: "${GITHUB_USERNAME}"
+              password: "${GITHUB_TOKEN}"
+              description: "GitHub credentials for repository access"
+          
+          - string:
+              scope: GLOBAL
+              id: "sonar-token"
+              secret: "${SONAR_TOKEN}"
+              description: "SonarQube authentication token"
+          
+          - usernamePassword:
+              scope: GLOBAL
+              id: "docker-registry-credentials"
+              username: "${DOCKER_USERNAME}"
+              password: "${DOCKER_TOKEN}"
+              description: "Docker registry credentials"
+          
+          - string:
+              scope: GLOBAL
+              id: "slack-token"
+              secret: "${SLACK_TOKEN}"
+              description: "Slack integration token"
+
+unclassified:
+  location:
+    url: "${JENKINS_URL:-http://localhost:8080/}"
+    adminAddress: "admin@enterprise.com"
+
+  mailer:
+    smtpHost: "${SMTP_HOST:-smtp.enterprise.com}"
+    smtpPort: "${SMTP_PORT:-587}"
+    useSsl: true
+    authentication:
+      username: "${SMTP_USERNAME:-jenkins@enterprise.com}"
+      password: "${SMTP_PASSWORD}"
+    defaultSuffix: "@enterprise.com"
+
+  sonarGlobalConfiguration:
+    installations:
+      - name: "SonarQube"
+        serverUrl: "${SONAR_URL:-http://sonarqube:9000}"
+        credentialsId: "sonar-token"
+        triggers:
+          skipScmCause: false
+          skipUpstreamCause: false
+
+  slackNotifier:
+    baseUrl: "${SLACK_BASE_URL:-https://hooks.slack.com/services/}"
+    teamDomain: "${SLACK_TEAM_DOMAIN:-enterprise}"
+    token: "${SLACK_TOKEN}"
+    room: "${SLACK_CHANNEL:-#ci-cd}"
+
+  globalLibraries:
+    libraries:
+      - name: "enterprise-pipeline-library"
+        defaultVersion: "main"
+        retriever:
+          modernSCM:
+            scm:
+              git:
+                remote: "https://github.com/enterprise/jenkins-pipeline-library.git"
+                credentialsId: "github-credentials"
+
+  buildDiscarders:
+    configuredBuildDiscarders:
+      - "jobBuildDiscarder"
+      - simpleBuildDiscarder:
+          discarder:
+            logRotator:
+              numToKeepStr: "10"
+              artifactNumToKeepStr: "5"
+              daysToKeepStr: "30"
+
+  timestamper:
+    allPipelines: true
+    elapsedTimeFormat: "'<b>'HH:mm:ss.S'</b> '"
+    systemTimeFormat: "'<b>'HH:mm:ss'</b> '"
+
+  buildStepOperation:
+    enabled: true
+
+  pollSCM:
+    pollingThreadCount: 10
+
+jobs:
+  - script: |
+      folder('Enterprise Spring Boot API') {
+          displayName('Enterprise Spring Boot API')
+          description('Folder containing all jobs related to the Enterprise Spring Boot API project')
+      }
+
+  - script: |
+      pipelineJob('Enterprise Spring Boot API/Main Pipeline') {
+          displayName('Enterprise Spring Boot API - Main CI/CD Pipeline')
+          description('Complete CI/CD pipeline for Enterprise Spring Boot API')
+          
+          definition {
+              cpsScm {
+                  scm {
+                      git {
+                          remote {
+                              url('https://github.com/enterprise/spring-boot-api.git')
+                              credentials('github-credentials')
+                          }
+                          branches('*/main')
+                          scriptPath('Jenkinsfile')
+                      }
+                  }
+                  lightweight(true)
+              }
+          }
+          
+          triggers {
+              githubPush()
+              pollSCM('H/5 * * * *')
+          }
+          
+          properties {
+              buildDiscarder {
+                  strategy {
+                      logRotator {
+                          numToKeepStr('10')
+                          artifactNumToKeepStr('5')
+                          daysToKeepStr('30')
+                      }
+                  }
+              }
+          }
+      }
+
+  - script: |
+      multibranchPipelineJob('Enterprise Spring Boot API/Multi-branch Pipeline') {
+          displayName('Enterprise Spring Boot API - Multi-branch Pipeline')
+          description('Multi-branch pipeline for feature branch builds and pull request validation')
+          
+          branchSources {
+              github {
+                  id('enterprise-spring-boot-api-github')
+                  scanCredentialsId('github-credentials')
+                  repoOwner('enterprise')
+                  repository('spring-boot-api')
+                  
+                  buildOriginBranch(true)
+                  buildOriginBranchWithPR(true)
+                  buildOriginPRMerge(false)
+                  buildOriginPRHead(true)
+                  buildForkPRMerge(false)
+                  buildForkPRHead(false)
+              }
+          }
+          
+          orphanedItemStrategy {
+              discardOldItems {
+                  numToKeep(20)
+                  daysToKeep(30)
+              }
+          }
+          
+          triggers {
+              periodicFolderTrigger {
+                  interval('1d')
+              }
+          }
+      }
+
+security:
+  queueItemAuthenticator:
+    authenticators:
+      - global:
+          strategy: triggeringUsersAuthorizationStrategy
+
+  sSHD:
+    port: 50022
+
+  gitHostKeyVerificationConfiguration:
+    sshHostKeyVerificationStrategy: "knownHostsFileVerificationStrategy"
+
+  globalJobDslSecurityConfiguration:
+    useScriptSecurity: false
+
+  scriptApproval:
+    approvedSignatures:
+      - "method groovy.json.JsonSlurperClassic parseText java.lang.String"
+      - "method java.lang.String toLowerCase"
+      - "method java.util.Collection size"
+      - "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods any java.lang.Object groovy.lang.Closure"
