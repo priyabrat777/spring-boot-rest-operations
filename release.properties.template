@@ -1,0 +1,32 @@
+# Maven Release Plugin Configuration Template
+# Copy this file to release.properties and customize as needed
+
+# SCM configuration
+scm.url=scm:git:https://github.com/enterprise/spring-boot-api.git
+scm.connection=scm:git:https://github.com/enterprise/spring-boot-api.git
+scm.developerConnection=scm:git:ssh://git@github.com/enterprise/spring-boot-api.git
+scm.tag=HEAD
+
+# Release configuration
+preparationGoals=clean verify
+completionGoals=clean
+goals=deploy site:site site:deploy
+
+# Version management
+project.scm.com.enterprise:spring-boot-api.connection=scm:git:https://github.com/enterprise/spring-boot-api.git
+project.scm.com.enterprise:spring-boot-api.developerConnection=scm:git:ssh://git@github.com/enterprise/spring-boot-api.git
+project.scm.com.enterprise:spring-boot-api.url=https://github.com/enterprise/spring-boot-api
+
+# Release profiles
+releaseProfiles=release
+
+# Push changes (set to false for manual control)
+pushChanges=false
+remoteTagging=false
+
+# Working directory
+workingDirectory=/path/to/your/project
+
+# Additional properties
+exec.snapshotReleasePluginAllowed=false
+exec.additionalArguments=-P release

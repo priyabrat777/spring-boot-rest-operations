@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Enterprise Spring Boot API"
+         xmlns="http://maven.apache.org/DECORATION/1.8.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/DECORATION/1.8.0 
+         http://maven.apache.org/xsd/decoration-1.8.0.xsd">
+
+    <bannerLeft>
+        <name>Enterprise Spring Boot API</name>
+        <href>https://enterprise.com</href>
+    </bannerLeft>
+
+    <publishDate position="right"/>
+    <version position="right"/>
+
+    <skin>
+        <groupId>org.apache.maven.skins</groupId>
+        <artifactId>maven-fluido-skin</artifactId>
+        <version>1.11.1</version>
+    </skin>
+
+
+
+
+
+    <body>
+        <menu name="Overview">
+            <item name="Introduction" href="index.html"/>
+            <item name="API Documentation" href="apidocs/index.html"/>
+            <item name="Test Coverage" href="jacoco/index.html"/>
+        </menu>
+
+        <menu name="Development">
+            <item name="Source Code" href="https://github.com/enterprise/spring-boot-api"/>
+            <item name="Issue Tracking" href="https://github.com/enterprise/spring-boot-api/issues"/>
+        </menu>
+
+        <menu name="Quality">
+            <item name="Test Coverage" href="jacoco/index.html"/>
+            <item name="Test Reports" href="surefire-report.html"/>
+            <item name="Dependency Updates" href="dependency-updates-report.html"/>
+        </menu>
+
+        <menu ref="reports"/>
+    </body>
+</project>
