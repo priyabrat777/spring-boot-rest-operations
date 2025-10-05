@@ -82,3 +82,13 @@ jacoco.exec
 
 # Test results
 TEST-*.xml
+
+# Maven Surefire
+**/surefire-reports/
+**/*.surefire
+*.surefire
+.surefire-*
+surefire-reports/
+*.dump
+*.dumpstream
+*-jvmRun*.dump
