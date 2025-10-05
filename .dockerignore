@@ -1,0 +1,82 @@
+# Docker ignore file for enterprise Spring Boot API
+
+# Build artifacts
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Test files
+src/test/
+test-uploads/
+
+# Logs
+logs/
+*.log
+
+# Docker files (except Dockerfile)
+docker-compose*.yml
+.dockerignore
+
+# CI/CD files
+.github/
+jenkins/
+Jenkinsfile
+build-scripts/
+
+# Maven wrapper (we install Maven in the container)
+.mvn/wrapper/maven-wrapper.jar
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Dependency directories
+node_modules/
+
+# Site generation
+src/site/
+site/
+
+# OWASP suppressions (not needed in container)
+owasp-suppressions.xml
+
+# Release files
+release.properties*

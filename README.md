@@ -36,9 +36,28 @@ A comprehensive Spring Boot workspace demonstrating enterprise-level REST API de
 
 - Java 21 or higher
 - Maven 3.8 or higher
-- MySQL 8.0 (for production)
+- Docker 20.10+ and Docker Compose 2.0+ (for containerized deployment)
+- MySQL 8.0 (for production without Docker)
 
 ### Running the Application
+
+#### Option 1: Docker (Recommended)
+
+1. **Quick start with Docker Compose**:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Build and run with custom configuration**:
+   ```bash
+   # Build the Docker image
+   ./docker/scripts/build.sh
+   
+   # Run with custom settings
+   ./docker/scripts/run.sh --port 8080 --profile dev -d
+   ```
+
+#### Option 2: Local Development
 
 1. **Development Mode** (uses H2 in-memory database):
    ```bash
@@ -58,9 +77,17 @@ A comprehensive Spring Boot workspace demonstrating enterprise-level REST API de
 
 ### Accessing the Application
 
+#### Local Development
 - **Application**: http://localhost:8080
 - **Swagger UI**: http://localhost:8080/swagger-ui.html
 - **H2 Console** (dev profile): http://localhost:8080/h2-console
+- **Actuator Health**: http://localhost:8080/actuator/health
+
+#### Docker Environment
+- **Application**: http://localhost:8080
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Database Admin (Adminer)**: http://localhost:8081
+- **Redis Admin**: http://localhost:8082
 - **Actuator Health**: http://localhost:8080/actuator/health
 
 ## Configuration
@@ -69,17 +96,31 @@ The application supports multiple environments through Spring profiles:
 
 - **dev**: Development environment with H2 database and debug logging
 - **test**: Test environment optimized for fast test execution
-- **prod**: Production environment with MySQL and security hardening
+- **prod**: Production environment with MySQL/PostgreSQL and security hardening
+
+### Docker Configuration
+
+For Docker deployment, copy the environment template and customize:
+
+```bash
+cp .env.template .env
+# Edit .env with your configuration
+```
 
 ### Environment Variables
 
 Key environment variables for production:
 
 ```bash
-# Database
+# Database (Local)
 DATABASE_URL=jdbc:mysql://localhost:3306/enterprise_api
 DATABASE_USERNAME=api_user
 DATABASE_PASSWORD=secure_password
+
+# Database (Docker)
+SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/enterprise_db
+SPRING_DATASOURCE_USERNAME=enterprise_user
+SPRING_DATASOURCE_PASSWORD=enterprise_pass
 
 # JWT Security
 JWT_SECRET=your-256-bit-secret-key
@@ -91,6 +132,10 @@ FILE_MAX_SIZE=5242880
 
 # CORS
 CORS_ALLOWED_ORIGINS=https://yourdomain.com
+
+# Redis (Docker)
+SPRING_REDIS_HOST=redis
+SPRING_REDIS_PORT=6379
 ```
 
 ## API Documentation
@@ -185,6 +230,36 @@ Available through Spring Boot Actuator:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Docker Deployment
+
+The application includes comprehensive Docker support for development and production environments.
+
+### Quick Docker Setup
+
+```bash
+# Start all services (app, database, Redis, admin tools)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f enterprise-api
+
+# Stop all services
+docker-compose down
+```
+
+### Production Docker Deployment
+
+```bash
+# Create production environment file
+cp .env.template .env
+# Edit .env with production values
+
+# Deploy with production configuration
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+For detailed Docker configuration and troubleshooting, see [docker/README.md](docker/README.md).
+
 ## Support
 
 For support and questions:
@@ -192,3 +267,4 @@ For support and questions:
 - Create an issue in the GitHub repository
 - Check the [Wiki](../../wiki) for detailed documentation
 - Review the API documentation at `/swagger-ui.html`
+- For Docker-related issues, see [docker/README.md](docker/README.md)

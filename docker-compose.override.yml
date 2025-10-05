@@ -1,0 +1,31 @@
+# Docker Compose override for development environment
+# This file is automatically loaded by docker-compose and extends docker-compose.yml
+
+version: '3.8'
+
+services:
+  enterprise-api:
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DEVTOOLS_RESTART_ENABLED=true
+      - LOGGING_LEVEL_COM_ENTERPRISE=DEBUG
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=DEBUG
+    volumes:
+      # Mount source code for development (if using Spring Boot DevTools)
+      - ./src:/app/src:ro
+      # Mount Maven repository to speed up builds
+      - ~/.m2:/root/.m2:ro
+    # Enable JVM debug port for remote debugging
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    command: >
+      sh -c "java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+             $$JAVA_OPTS -jar app.jar"
+
+  # Enable development tools
+  adminer:
+    profiles: []  # Always start in development
+
+  redis-commander:
+    profiles: []  # Always start in development

@@ -1,0 +1,69 @@
+# Docker Compose configuration for production environment
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+version: '3.8'
+
+services:
+  enterprise-api:
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DEVTOOLS_RESTART_ENABLED=false
+      - LOGGING_LEVEL_COM_ENTERPRISE=INFO
+      - LOGGING_LEVEL_ROOT=WARN
+      # Production database connection (use secrets in real production)
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/enterprise_db
+      - SPRING_DATASOURCE_USERNAME=enterprise_user
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
+    # Remove debug port
+    ports:
+      - "8080:8080"
+    # Production-optimized JVM settings
+    environment:
+      - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -server
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    restart: always
+
+  postgres:
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    # Resource limits for database
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: always
+
+  redis:
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    # Resource limits for Redis
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    restart: always
+
+  # Remove development tools in production
+  adminer:
+    profiles:
+      - never
+
+  redis-commander:
+    profiles:
+      - never
