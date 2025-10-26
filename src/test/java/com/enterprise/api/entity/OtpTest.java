@@ -225,8 +225,8 @@ class OtpTest {
         // Assert
         assertTrue(result.contains("id=1"));
         assertTrue(result.contains("identifier='test@example.com'"));
-        assertTrue(result.contains("type=EMAIL"));
-        assertTrue(result.contains("purpose=LOGIN"));
+        assertTrue(result.contains("type=Email"));
+        assertTrue(result.contains("purpose=Login Authentication"));
         assertTrue(result.contains("used=false"));
         assertTrue(result.contains("attempts=0"));
         assertTrue(result.contains("maxAttempts=3"));

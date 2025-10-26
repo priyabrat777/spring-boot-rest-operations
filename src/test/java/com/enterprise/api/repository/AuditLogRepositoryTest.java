@@ -9,7 +9,9 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DataJpaTest
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Transactional
 class AuditLogRepositoryTest {
 
     @Autowired
@@ -34,6 +38,11 @@ class AuditLogRepositoryTest {
 
     @BeforeEach
     void setUp() {
+        // Clean up any existing data
+        auditLogRepository.deleteAll();
+        entityManager.flush();
+        entityManager.clear();
+        
         testAuditLog1 = new AuditLog("User", "1", AuditLog.AuditOperation.CREATE, "testuser1");
         testAuditLog1.setNewValues("{\"name\":\"John Doe\"}");
         testAuditLog1.setIpAddress("192.168.1.1");
