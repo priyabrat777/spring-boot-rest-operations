@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests OTP repository operations with actual database interactions.
  */
 @DataJpaTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class OtpRepositoryTest {
 
     @Autowired
@@ -37,6 +39,11 @@ class OtpRepositoryTest {
 
     @BeforeEach
     void setUp() {
+        // Clean up any existing data
+        otpRepository.deleteAll();
+        entityManager.flush();
+        entityManager.clear();
+
         now = LocalDateTime.now();
         future = now.plusMinutes(5);
         past = now.minusMinutes(5);
