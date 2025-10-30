@@ -19,7 +19,7 @@ class WireMockBasicTest {
 
     @BeforeEach
     void setUp() {
-        wireMockServer = new WireMockServer(WireMockConfiguration.options().port(8089));
+        wireMockServer = new WireMockServer(WireMockConfiguration.options().dynamicPort());
         wireMockServer.start();
     }
 
@@ -34,7 +34,7 @@ class WireMockBasicTest {
     void shouldStartWireMockServer() {
         // Given
         assertThat(wireMockServer.isRunning()).isTrue();
-        assertThat(wireMockServer.port()).isEqualTo(8089);
+        assertThat(wireMockServer.port()).isGreaterThan(0);
     }
 
     @Test

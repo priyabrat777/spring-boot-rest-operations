@@ -2,6 +2,7 @@ package com.enterprise.api.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * Response DTO for authentication operations.
@@ -83,6 +84,7 @@ public class AuthResponse {
         private boolean enabled;
         private Set<String> roles;
         private Set<String> permissions;
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         private LocalDateTime lastLogin;
 
         // Constructors

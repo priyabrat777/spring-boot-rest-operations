@@ -4,6 +4,7 @@ import com.enterprise.api.dto.request.FileUploadRequest;
 import com.enterprise.api.dto.response.FileMetadataResponse;
 import com.enterprise.api.dto.response.FileUploadResponse;
 import com.enterprise.api.entity.User;
+import com.enterprise.api.repository.UserRepository;
 import com.enterprise.api.service.FileService;
 import com.enterprise.api.wiremock.stubs.FileStorageStubs;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.context.annotation.Import;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,13 +24,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Integration tests for file storage services using WireMock.
  * Tests external storage service integration scenarios including success and failure cases.
  */
-@SpringBootTest
-@ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles({"test", "wiremock"})
+@Import({WireMockConfig.class, WireMockExternalServiceConfig.class})
 @Transactional
 class FileStorageWireMockTest extends WireMockTestBase {
 
     @Autowired
     private FileService fileService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     protected void setupWireMockStubs() {
@@ -408,10 +414,10 @@ class FileStorageWireMockTest extends WireMockTestBase {
 
     private User createTestUser(String username, String email) {
         User user = new User();
-        user.setId(1L);
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword("encoded-password");
-        return user;
+        // Save to database to avoid foreign key constraint violations
+        return userRepository.save(user);
     }
 }

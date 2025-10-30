@@ -1,21 +1,22 @@
 package com.enterprise.api.monitoring;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@ActiveProfiles("test")
+/**
+ * Test to verify that Spring Boot Actuator classes are available on the
+ * classpath.
+ * This is a simple unit test that doesn't require Spring context loading.
+ */
 class ActuatorAvailabilityTest {
 
     @Test
     void actuatorHealthClassesShouldBeAvailable() {
         try {
-            Class<?> healthClass = Class.forName("org.springframework.boot.actuator.health.Health");
-            Class<?> healthIndicatorClass = Class.forName("org.springframework.boot.actuator.health.HealthIndicator");
-            
+            Class<?> healthClass = Class.forName("org.springframework.boot.actuate.health.Health");
+            Class<?> healthIndicatorClass = Class.forName("org.springframework.boot.actuate.health.HealthIndicator");
+
             assertThat(healthClass).isNotNull();
             assertThat(healthIndicatorClass).isNotNull();
         } catch (ClassNotFoundException e) {

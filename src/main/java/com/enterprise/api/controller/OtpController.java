@@ -33,7 +33,6 @@ import java.util.Map;
 @Tag(name = "OTP (One-Time Password)", description = "OTP generation and validation for secure authentication workflows")
 @RestController
 @RequestMapping("/api/v1/otp")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class OtpController {
 
     private static final Logger logger = LoggerFactory.getLogger(OtpController.class);

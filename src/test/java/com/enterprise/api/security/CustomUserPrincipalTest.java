@@ -62,20 +62,19 @@ class CustomUserPrincipalTest {
 
         // Then
         assertThat(authorities).hasSize(5); // 2 roles + 3 permissions
-        
+
         Set<String> authorityNames = authorities.stream()
-            .map(GrantedAuthority::getAuthority)
-            .collect(java.util.stream.Collectors.toSet());
-        
+                .map(GrantedAuthority::getAuthority)
+                .collect(java.util.stream.Collectors.toSet());
+
         // Check role authorities
         assertThat(authorityNames).contains("ROLE_USER", "ROLE_ADMIN");
-        
+
         // Check permission authorities
         assertThat(authorityNames).contains(
-            "PERMISSION_USER:READ", 
-            "PERMISSION_USER:WRITE", 
-            "PERMISSION_ADMIN:ALL"
-        );
+                "PERMISSION_USER_READ",
+                "PERMISSION_USER_WRITE",
+                "PERMISSION_ADMIN_ALL");
     }
 
     @Test
@@ -92,11 +91,11 @@ class CustomUserPrincipalTest {
     @DisplayName("Should check permission existence correctly")
     void shouldCheckPermissionExistenceCorrectly() {
         // When & Then
-        assertThat(userPrincipal.hasPermission("USER:READ")).isTrue();
-        assertThat(userPrincipal.hasPermission("USER:WRITE")).isTrue();
-        assertThat(userPrincipal.hasPermission("ADMIN:ALL")).isTrue();
-        assertThat(userPrincipal.hasPermission("USER:DELETE")).isFalse();
-        assertThat(userPrincipal.hasPermission("NONEXISTENT:PERMISSION")).isFalse();
+        assertThat(userPrincipal.hasPermission("USER_READ")).isTrue();
+        assertThat(userPrincipal.hasPermission("USER_WRITE")).isTrue();
+        assertThat(userPrincipal.hasPermission("ADMIN_ALL")).isTrue();
+        assertThat(userPrincipal.hasPermission("USER_DELETE")).isFalse();
+        assertThat(userPrincipal.hasPermission("NONEXISTENT_PERMISSION")).isFalse();
     }
 
     @Test
@@ -118,7 +117,7 @@ class CustomUserPrincipalTest {
 
         // Then
         assertThat(permissionNames).hasSize(3);
-        assertThat(permissionNames).contains("USER:READ", "USER:WRITE", "ADMIN:ALL");
+        assertThat(permissionNames).contains("USER_READ", "USER_WRITE", "ADMIN_ALL");
     }
 
     @Test
@@ -128,7 +127,7 @@ class CustomUserPrincipalTest {
         User userWithoutRoles = new User("norolesuser", "password", "noroles@example.com");
         userWithoutRoles.setId(2L);
         userWithoutRoles.setEnabled(true);
-        
+
         CustomUserPrincipal principalWithoutRoles = new CustomUserPrincipal(userWithoutRoles);
 
         // When
@@ -141,7 +140,7 @@ class CustomUserPrincipalTest {
         assertThat(roleNames).isEmpty();
         assertThat(permissionNames).isEmpty();
         assertThat(principalWithoutRoles.hasRole("USER")).isFalse();
-        assertThat(principalWithoutRoles.hasPermission("USER:READ")).isFalse();
+        assertThat(principalWithoutRoles.hasPermission("USER_READ")).isFalse();
     }
 
     @Test
@@ -151,11 +150,11 @@ class CustomUserPrincipalTest {
         User user = new User("rolesonlyuser", "password", "rolesonly@example.com");
         user.setId(3L);
         user.setEnabled(true);
-        
+
         Role emptyRole = new Role("EMPTY_ROLE", "Role with no permissions");
         emptyRole.setId(3L);
         user.addRole(emptyRole);
-        
+
         CustomUserPrincipal principal = new CustomUserPrincipal(user);
 
         // When
@@ -168,7 +167,7 @@ class CustomUserPrincipalTest {
         assertThat(roleNames).containsExactly("EMPTY_ROLE");
         assertThat(permissionNames).isEmpty();
         assertThat(principal.hasRole("EMPTY_ROLE")).isTrue();
-        assertThat(principal.hasPermission("ANY:PERMISSION")).isFalse();
+        assertThat(principal.hasPermission("ANY_PERMISSION")).isFalse();
     }
 
     @Test
@@ -232,7 +231,7 @@ class CustomUserPrincipalTest {
     void shouldImplementEqualsCorrectly() {
         // Given
         CustomUserPrincipal samePrincipal = new CustomUserPrincipal(testUser);
-        
+
         User differentUser = new User("different", "password", "different@example.com");
         differentUser.setId(999L);
         CustomUserPrincipal differentPrincipal = new CustomUserPrincipal(differentUser);
@@ -289,7 +288,7 @@ class CustomUserPrincipalTest {
 
         Permission readPermission = new Permission("USER:READ", "Read user data", "user", "read");
         readPermission.setId(1L);
-        
+
         Permission writePermission = new Permission("USER:WRITE", "Write user data", "user", "write");
         writePermission.setId(2L);
 

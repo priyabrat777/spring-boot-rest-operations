@@ -49,7 +49,6 @@ import java.nio.charset.StandardCharsets;
 @Tag(name = "File Management", description = "File upload, download, and metadata management operations with security validation")
 @RestController
 @RequestMapping("/api/files")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class FileController {
 
     private static final Logger logger = LoggerFactory.getLogger(FileController.class);

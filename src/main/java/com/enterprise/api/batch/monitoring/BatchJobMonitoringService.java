@@ -13,6 +13,7 @@ import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteExcep
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -47,7 +48,7 @@ public class BatchJobMonitoringService {
     public BatchJobMonitoringService(JobExplorer jobExplorer, 
                                    JobRepository jobRepository,
                                    JobLauncher jobLauncher,
-                                   Map<String, Job> jobRegistry) {
+                                   @Qualifier("customJobRegistry") Map<String, Job> jobRegistry) {
         this.jobExplorer = jobExplorer;
         this.jobRepository = jobRepository;
         this.jobLauncher = jobLauncher;

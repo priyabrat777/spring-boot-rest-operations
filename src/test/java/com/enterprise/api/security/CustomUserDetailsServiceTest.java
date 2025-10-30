@@ -53,7 +53,7 @@ class CustomUserDetailsServiceTest {
     void shouldLoadUserByUsernameSuccessfully() {
         // Given
         when(userRepository.findByUsernameWithRolesAndPermissions("testuser"))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
 
         // When
         UserDetails userDetails = userDetailsService.loadUserByUsername("testuser");
@@ -74,12 +74,12 @@ class CustomUserDetailsServiceTest {
     void shouldThrowExceptionWhenUserNotFoundByUsername() {
         // Given
         when(userRepository.findByUsernameWithRolesAndPermissions("nonexistent"))
-            .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userDetailsService.loadUserByUsername("nonexistent"))
-            .isInstanceOf(UsernameNotFoundException.class)
-            .hasMessageContaining("User not found with username: nonexistent");
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessageContaining("User not found with username: nonexistent");
 
         verify(userRepository).findByUsernameWithRolesAndPermissions("nonexistent");
     }
@@ -90,12 +90,12 @@ class CustomUserDetailsServiceTest {
         // Given
         testUser.setDeleted(true);
         when(userRepository.findByUsernameWithRolesAndPermissions("testuser"))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
 
         // When & Then
         assertThatThrownBy(() -> userDetailsService.loadUserByUsername("testuser"))
-            .isInstanceOf(UsernameNotFoundException.class)
-            .hasMessageContaining("User account is no longer active: testuser");
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessageContaining("User account is no longer active: testuser");
 
         verify(userRepository).findByUsernameWithRolesAndPermissions("testuser");
     }
@@ -105,7 +105,7 @@ class CustomUserDetailsServiceTest {
     void shouldLoadUserByIdSuccessfully() {
         // Given
         when(userRepository.findByIdWithRolesAndPermissions(1L))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
 
         // When
         UserDetails userDetails = userDetailsService.loadUserById(1L);
@@ -124,12 +124,12 @@ class CustomUserDetailsServiceTest {
     void shouldThrowExceptionWhenUserNotFoundById() {
         // Given
         when(userRepository.findByIdWithRolesAndPermissions(999L))
-            .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userDetailsService.loadUserById(999L))
-            .isInstanceOf(UsernameNotFoundException.class)
-            .hasMessageContaining("User not found with ID: 999");
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessageContaining("User not found with ID: 999");
 
         verify(userRepository).findByIdWithRolesAndPermissions(999L);
     }
@@ -140,12 +140,12 @@ class CustomUserDetailsServiceTest {
         // Given
         testUser.setDeleted(true);
         when(userRepository.findByIdWithRolesAndPermissions(1L))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
 
         // When & Then
         assertThatThrownBy(() -> userDetailsService.loadUserById(1L))
-            .isInstanceOf(UsernameNotFoundException.class)
-            .hasMessageContaining("User account is no longer active with ID: 1");
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessageContaining("User account is no longer active with ID: 1");
 
         verify(userRepository).findByIdWithRolesAndPermissions(1L);
     }
@@ -155,7 +155,7 @@ class CustomUserDetailsServiceTest {
     void shouldLoadUserByEmailSuccessfully() {
         // Given
         when(userRepository.findByEmailWithRolesAndPermissions("test@example.com"))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
 
         // When
         UserDetails userDetails = userDetailsService.loadUserByEmail("test@example.com");
@@ -173,12 +173,12 @@ class CustomUserDetailsServiceTest {
     void shouldThrowExceptionWhenUserNotFoundByEmail() {
         // Given
         when(userRepository.findByEmailWithRolesAndPermissions("nonexistent@example.com"))
-            .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userDetailsService.loadUserByEmail("nonexistent@example.com"))
-            .isInstanceOf(UsernameNotFoundException.class)
-            .hasMessageContaining("User not found with email: nonexistent@example.com");
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessageContaining("User not found with email: nonexistent@example.com");
 
         verify(userRepository).findByEmailWithRolesAndPermissions("nonexistent@example.com");
     }
@@ -189,12 +189,12 @@ class CustomUserDetailsServiceTest {
         // Given
         testUser.setDeleted(true);
         when(userRepository.findByEmailWithRolesAndPermissions("test@example.com"))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
 
         // When & Then
         assertThatThrownBy(() -> userDetailsService.loadUserByEmail("test@example.com"))
-            .isInstanceOf(UsernameNotFoundException.class)
-            .hasMessageContaining("User account is no longer active with email: test@example.com");
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessageContaining("User account is no longer active with email: test@example.com");
 
         verify(userRepository).findByEmailWithRolesAndPermissions("test@example.com");
     }
@@ -303,12 +303,12 @@ class CustomUserDetailsServiceTest {
     void shouldHandleRepositoryExceptionsGracefully() {
         // Given
         when(userRepository.findByUsernameWithRolesAndPermissions(anyString()))
-            .thenThrow(new RuntimeException("Database connection error"));
+                .thenThrow(new RuntimeException("Database connection error"));
 
         // When & Then
         assertThatThrownBy(() -> userDetailsService.loadUserByUsername("testuser"))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Database connection error");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Database connection error");
 
         verify(userRepository).findByUsernameWithRolesAndPermissions("testuser");
     }
@@ -319,7 +319,7 @@ class CustomUserDetailsServiceTest {
         // Given
         User userWithMultipleRoles = createUserWithMultipleRoles();
         when(userRepository.findByUsernameWithRolesAndPermissions("multiuser"))
-            .thenReturn(Optional.of(userWithMultipleRoles));
+                .thenReturn(Optional.of(userWithMultipleRoles));
 
         // When
         UserDetails userDetails = userDetailsService.loadUserByUsername("multiuser");
@@ -327,13 +327,13 @@ class CustomUserDetailsServiceTest {
         // Then
         assertThat(userDetails).isNotNull();
         assertThat(userDetails.getAuthorities()).hasSize(5); // 2 roles + 3 permissions
-        
+
         CustomUserPrincipal principal = (CustomUserPrincipal) userDetails;
         assertThat(principal.hasRole("USER")).isTrue();
         assertThat(principal.hasRole("ADMIN")).isTrue();
-        assertThat(principal.hasPermission("USER:READ")).isTrue();
-        assertThat(principal.hasPermission("USER:WRITE")).isTrue();
-        assertThat(principal.hasPermission("ADMIN:ALL")).isTrue();
+        assertThat(principal.hasPermission("USER_READ")).isTrue();
+        assertThat(principal.hasPermission("USER_WRITE")).isTrue();
+        assertThat(principal.hasPermission("ADMIN_ALL")).isTrue();
 
         verify(userRepository).findByUsernameWithRolesAndPermissions("multiuser");
     }
@@ -357,7 +357,7 @@ class CustomUserDetailsServiceTest {
 
         Permission readPermission = new Permission("USER:READ", "Read user data", "user", "read");
         readPermission.setId(1L);
-        
+
         Permission writePermission = new Permission("USER:WRITE", "Write user data", "user", "write");
         writePermission.setId(2L);
 
@@ -385,7 +385,7 @@ class CustomUserDetailsServiceTest {
 
         Permission readPermission = new Permission("USER:READ", "Read user data", "user", "read");
         readPermission.setId(1L);
-        
+
         Permission writePermission = new Permission("USER:WRITE", "Write user data", "user", "write");
         writePermission.setId(2L);
 

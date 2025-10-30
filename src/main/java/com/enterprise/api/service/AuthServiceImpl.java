@@ -19,7 +19,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+import com.enterprise.api.exception.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -73,16 +73,15 @@ public class AuthServiceImpl implements AuthService {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getUsernameOrEmail(),
-                            loginRequest.getPassword()
-                    )
-            );
+                            loginRequest.getPassword()));
 
             // Get user details
             CustomUserPrincipal userPrincipal = (CustomUserPrincipal) authentication.getPrincipal();
-            
+
             // Load full user details for response building
             User user = userRepository.findByIdWithRolesAndPermissions(userPrincipal.getId())
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userPrincipal.getId()));
+                    .orElseThrow(
+                            () -> new UsernameNotFoundException("User not found with ID: " + userPrincipal.getId()));
 
             // Validate account status
             validateAccountStatus(user);
@@ -97,7 +96,8 @@ public class AuthServiceImpl implements AuthService {
             userInfo.setLastLogin(LocalDateTime.now());
 
             // Update user's last login time (optional - could be tracked separately)
-            // This is a simple approach; in production, you might want to track this in a separate table
+            // This is a simple approach; in production, you might want to track this in a
+            // separate table
 
             logger.info("User {} logged in successfully", user.getUsername());
 
@@ -105,16 +105,20 @@ public class AuthServiceImpl implements AuthService {
 
         } catch (BadCredentialsException e) {
             logger.warn("Invalid credentials for user: {}", loginRequest.getUsernameOrEmail());
-            throw new AuthenticationException("Invalid username/email or password") {};
+            throw new AuthenticationException("Invalid username/email or password") {
+            };
         } catch (DisabledException e) {
             logger.warn("Account disabled for user: {}", loginRequest.getUsernameOrEmail());
-            throw new AuthenticationException("Account is disabled") {};
+            throw new AuthenticationException("Account is disabled") {
+            };
         } catch (LockedException e) {
             logger.warn("Account locked for user: {}", loginRequest.getUsernameOrEmail());
-            throw new AuthenticationException("Account is locked") {};
+            throw new AuthenticationException("Account is locked") {
+            };
         } catch (Exception e) {
             logger.error("Authentication failed for user: {}", loginRequest.getUsernameOrEmail(), e);
-            throw new AuthenticationException("Authentication failed") {};
+            throw new AuthenticationException("Authentication failed") {
+            };
         }
     }
 
@@ -123,33 +127,35 @@ public class AuthServiceImpl implements AuthService {
         if (authentication != null && authentication.isAuthenticated()) {
             String username = authentication.getName();
             logger.info("User {} logged out successfully", username);
-            
+
             // In a more sophisticated implementation, you might:
             // 1. Blacklist the JWT token
             // 2. Clear any cached user sessions
             // 3. Log the logout event for audit purposes
-            
+
             return "Logout successful";
         }
-        
+
         return "No active session found";
     }
 
     @Override
     public TokenResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
         String refreshToken = refreshTokenRequest.getRefreshToken();
-        
+
         logger.debug("Attempting to refresh token");
 
         try {
             // Validate the refresh token
             if (!jwtTokenProvider.validateToken(refreshToken)) {
-                throw new AuthenticationException("Invalid refresh token") {};
+                throw new AuthenticationException("Invalid refresh token") {
+                };
             }
 
             // Check if it's actually a refresh token
             if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
-                throw new AuthenticationException("Token is not a refresh token") {};
+                throw new AuthenticationException("Token is not a refresh token") {
+                };
             }
 
             // Extract user information from refresh token
@@ -178,7 +184,8 @@ public class AuthServiceImpl implements AuthService {
 
         } catch (Exception e) {
             logger.error("Token refresh failed", e);
-            throw new AuthenticationException("Token refresh failed: " + e.getMessage()) {};
+            throw new AuthenticationException("Token refresh failed: " + e.getMessage()) {
+            };
         }
     }
 
@@ -191,13 +198,13 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             CustomUserPrincipal userPrincipal = (CustomUserPrincipal) authentication.getPrincipal();
-            
+
             // Check if user still exists and is active
             return userRepository.findByIdActive(userPrincipal.getId()).isPresent() &&
-                   userPrincipal.isEnabled() &&
-                   userPrincipal.isAccountNonExpired() &&
-                   userPrincipal.isAccountNonLocked() &&
-                   userPrincipal.isCredentialsNonExpired();
+                    userPrincipal.isEnabled() &&
+                    userPrincipal.isAccountNonExpired() &&
+                    userPrincipal.isAccountNonLocked() &&
+                    userPrincipal.isCredentialsNonExpired();
         } catch (Exception e) {
             logger.error("Error validating authentication", e);
             return false;
@@ -210,15 +217,15 @@ public class AuthServiceImpl implements AuthService {
         try {
             User user = userRepository.findByUsernameOrEmailActive(username)
                     .orElse(null);
-            
+
             if (user == null) {
                 return false;
             }
 
             return user.isEnabled() &&
-                   user.isAccountNonExpired() &&
-                   user.isAccountNonLocked() &&
-                   user.isCredentialsNonExpired();
+                    user.isAccountNonExpired() &&
+                    user.isAccountNonLocked() &&
+                    user.isCredentialsNonExpired();
         } catch (Exception e) {
             logger.error("Error checking account status for user: {}", username, e);
             return false;
@@ -275,22 +282,25 @@ public class AuthServiceImpl implements AuthService {
         if (!user.isEnabled()) {
             throw new DisabledException("Account is disabled");
         }
-        
+
         if (!user.isAccountNonExpired()) {
-            throw new AuthenticationException("Account has expired") {};
+            throw new AuthenticationException("Account has expired") {
+            };
         }
-        
+
         if (!user.isAccountNonLocked()) {
             throw new LockedException("Account is locked");
         }
-        
+
         if (!user.isCredentialsNonExpired()) {
-            throw new AuthenticationException("Credentials have expired") {};
+            throw new AuthenticationException("Credentials have expired") {
+            };
         }
     }
 
     @Override
-    public boolean changeCurrentUserPassword(String currentPassword, String newPassword, Authentication authentication) {
+    public boolean changeCurrentUserPassword(String currentPassword, String newPassword,
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             logger.warn("Attempt to change password without authentication");
             return false;
@@ -391,8 +401,8 @@ public class AuthServiceImpl implements AuthService {
      * @return true if email is valid
      */
     private boolean isValidEmail(String email) {
-        return email != null && 
-               email.matches("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$");
+        return email != null &&
+                email.matches("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$");
     }
 
     /**
@@ -407,8 +417,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getUsername(),
                 user.getEmail(),
                 user.getFirstName(),
-                user.getLastName()
-        );
+                user.getLastName());
 
         userInfo.setEnabled(user.isEnabled());
 

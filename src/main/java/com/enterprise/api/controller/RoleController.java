@@ -50,7 +50,6 @@ import java.util.Optional;
 @Tag(name = "Role Management", description = "Role and permission management operations with RBAC access control")
 @RestController
 @RequestMapping("/api/v1/roles")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class RoleController {
 
     private static final Logger logger = LoggerFactory.getLogger(RoleController.class);

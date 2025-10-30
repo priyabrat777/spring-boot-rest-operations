@@ -76,8 +76,8 @@ public class SecurityConfig {
             // Configure authorization rules
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints - no authentication required
-                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/captcha/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/captcha/**").permitAll()
                 .requestMatchers(HttpMethod.DELETE, "/api/captcha/**").permitAll()
@@ -93,15 +93,15 @@ public class SecurityConfig {
                 .requestMatchers("/favicon.ico", "/error").permitAll()
                 
                 // User management endpoints - role-based access
-                .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/users/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/v1/users/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/users").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/users/**").hasRole("ADMIN")
                 
                 // Role management endpoints - admin only
-                .requestMatchers("/api/roles/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
                 
                 // Permission management endpoints - admin only
                 .requestMatchers("/api/permissions/**").hasRole("ADMIN")
@@ -112,7 +112,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/files/**").authenticated()
                 
                 // OTP endpoints - authenticated users
-                .requestMatchers("/api/otp/**").authenticated()
+                .requestMatchers("/api/v1/otp/**").authenticated()
                 
                 // Batch job endpoints - admin only
                 .requestMatchers("/api/batch/**").hasRole("ADMIN")
@@ -126,8 +126,8 @@ public class SecurityConfig {
             
             // Configure security headers
             .headers(headers -> headers
-                .frameOptions().deny()
-                .contentTypeOptions().and()
+                .frameOptions(frameOptions -> frameOptions.deny())
+                .contentTypeOptions(contentTypeOptions -> contentTypeOptions.and())
                 .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                     .maxAgeInSeconds(31536000)
                     .includeSubDomains(true))
@@ -152,8 +152,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow specific origins in production, all origins in development
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // Allow specific origins - use specific patterns instead of "*" when credentials are enabled
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:*",
+            "https://localhost:*",
+            "http://127.0.0.1:*",
+            "https://127.0.0.1:*"
+        ));
         
         // Allow specific HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
@@ -174,7 +179,10 @@ public class SecurityConfig {
             "Accept",
             "Origin",
             "Access-Control-Request-Method",
-            "Access-Control-Request-Headers"
+            "Access-Control-Request-Headers",
+            "X-Custom-Header",
+            "X-Client-Time",
+            "X-Special-Chars"
         ));
         
         // Expose specific headers

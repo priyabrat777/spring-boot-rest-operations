@@ -37,6 +37,12 @@ class OtpServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private com.enterprise.api.service.external.EmailServiceClient emailServiceClient;
+
+    @Mock
+    private com.enterprise.api.service.external.SmsServiceClient smsServiceClient;
+
     @InjectMocks
     private OtpServiceImpl otpService;
 
@@ -55,6 +61,10 @@ class OtpServiceImplTest {
         ReflectionTestUtils.setField(otpService, "maxFailedAttempts", 10);
         ReflectionTestUtils.setField(otpService, "codeLength", 6);
         ReflectionTestUtils.setField(otpService, "numericOnly", true);
+
+        // Mock external service calls to return success (lenient to avoid unnecessary stubbing)
+        lenient().when(emailServiceClient.sendEmail(anyString(), anyString(), anyString())).thenReturn(true);
+        lenient().when(smsServiceClient.sendSms(anyString(), anyString())).thenReturn(true);
 
         // Set up test data
         generationRequest = new OtpGenerationRequest(

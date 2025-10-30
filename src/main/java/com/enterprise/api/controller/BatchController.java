@@ -25,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -55,7 +56,7 @@ public class BatchController {
     public BatchController(JobLauncher jobLauncher,
                           BatchJobMonitoringService monitoringService,
                           JobParameterHandler parameterHandler,
-                          Map<String, Job> jobRegistry) {
+                          @Qualifier("customJobRegistry") Map<String, Job> jobRegistry) {
         this.jobLauncher = jobLauncher;
         this.monitoringService = monitoringService;
         this.parameterHandler = parameterHandler;

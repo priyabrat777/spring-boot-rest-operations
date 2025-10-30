@@ -120,8 +120,7 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Should not authenticate when no authorization header")
     void shouldNotAuthenticateWhenNoAuthorizationHeader() throws ServletException, IOException {
         // Given
-        lenient().when(request.getHeader("Authorization")).thenReturn(null);
-        when(request.getRequestURI()).thenReturn("/api/users/me");
+        when(request.getHeader("Authorization")).thenReturn(null);
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -137,8 +136,7 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Should not authenticate when authorization header does not start with Bearer")
     void shouldNotAuthenticateWhenAuthorizationHeaderDoesNotStartWithBearer() throws ServletException, IOException {
         // Given
-        lenient().when(request.getHeader("Authorization")).thenReturn("Basic " + validToken);
-        when(request.getRequestURI()).thenReturn("/api/users/me");
+        when(request.getHeader("Authorization")).thenReturn("Basic " + validToken);
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -177,12 +175,11 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Should not authenticate when user is not found")
     void shouldNotAuthenticateWhenUserIsNotFound() throws ServletException, IOException {
         // Given
-        lenient().when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
-        when(request.getRequestURI()).thenReturn("/api/users/me");
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
         when(jwtTokenProvider.validateToken(validToken)).thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken(validToken)).thenReturn(999L);
         when(customUserDetailsService.loadUserById(999L))
-            .thenThrow(new UsernameNotFoundException("User not found"));
+                .thenThrow(new UsernameNotFoundException("User not found"));
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -201,8 +198,7 @@ class JwtAuthenticationFilterTest {
         // Given
         Authentication existingAuth = mock(Authentication.class);
         when(securityContext.getAuthentication()).thenReturn(existingAuth);
-        lenient().when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
-        when(request.getRequestURI()).thenReturn("/api/users/me");
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
         when(jwtTokenProvider.validateToken(validToken)).thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken(validToken)).thenReturn(1L);
 
@@ -263,8 +259,7 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Should handle empty bearer token")
     void shouldHandleEmptyBearerToken() throws ServletException, IOException {
         // Given
-        lenient().when(request.getHeader("Authorization")).thenReturn("Bearer ");
-        when(request.getRequestURI()).thenReturn("/api/users/me");
+        when(request.getHeader("Authorization")).thenReturn("Bearer ");
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -280,8 +275,7 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Should handle whitespace-only bearer token")
     void shouldHandleWhitespaceOnlyBearerToken() throws ServletException, IOException {
         // Given
-        lenient().when(request.getHeader("Authorization")).thenReturn("Bearer    ");
-        when(request.getRequestURI()).thenReturn("/api/users/me");
+        when(request.getHeader("Authorization")).thenReturn("Bearer    ");
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -297,12 +291,11 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Should clear security context on exception")
     void shouldClearSecurityContextOnException() throws ServletException, IOException {
         // Given
-        lenient().when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
-        when(request.getRequestURI()).thenReturn("/api/users/me");
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
         when(jwtTokenProvider.validateToken(validToken)).thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken(validToken)).thenReturn(1L);
         when(customUserDetailsService.loadUserById(1L))
-            .thenThrow(new RuntimeException("Database error"));
+                .thenThrow(new RuntimeException("Database error"));
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -319,8 +312,7 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Should handle null user ID from token")
     void shouldHandleNullUserIdFromToken() throws ServletException, IOException {
         // Given
-        lenient().when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
-        when(request.getRequestURI()).thenReturn("/api/users/me");
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
         when(jwtTokenProvider.validateToken(validToken)).thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken(validToken)).thenReturn(null);
 
@@ -339,15 +331,15 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Should process multiple public endpoints correctly")
     void shouldProcessMultiplePublicEndpointsCorrectly() throws ServletException, IOException {
         String[] publicPaths = {
-            "/api/auth/login",
-            "/api/auth/register", 
-            "/api/auth/refresh",
-            "/api/captcha/generate",
-            "/actuator/health",
-            "/swagger-ui/index.html",
-            "/v3/api-docs/swagger-config",
-            "/favicon.ico",
-            "/error"
+                "/api/auth/login",
+                "/api/auth/register",
+                "/api/auth/refresh",
+                "/api/captcha/generate",
+                "/actuator/health",
+                "/swagger-ui/index.html",
+                "/v3/api-docs/swagger-config",
+                "/favicon.ico",
+                "/error"
         };
 
         for (String path : publicPaths) {

@@ -160,6 +160,6 @@ public class JobParameterHandler {
      * @return unique execution ID
      */
     private String generateExecutionId() {
-        return "exec_" + System.currentTimeMillis() + "_" + Thread.currentThread().getId();
+        return "exec_" + System.currentTimeMillis() + "_" + Thread.currentThread().threadId();
     }
 }

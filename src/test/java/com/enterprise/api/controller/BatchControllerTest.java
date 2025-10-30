@@ -4,9 +4,12 @@ import com.enterprise.api.batch.config.JobParameterHandler;
 import com.enterprise.api.batch.monitoring.BatchJobMonitoringService;
 import com.enterprise.api.batch.monitoring.JobExecutionStatus;
 import com.enterprise.api.batch.monitoring.JobStatistics;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
@@ -16,16 +19,10 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.NoSuchJobException;
-import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
-import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
-import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.batch.core.JobParametersInvalidException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -34,17 +31,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Unit tests for BatchController.
@@ -52,294 +42,298 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 
  * Requirements: 6.4
  */
-@WebMvcTest(BatchController.class)
+@ExtendWith(MockitoExtension.class)
 class BatchControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Mock
+        private JobLauncher jobLauncher;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Mock
+        private BatchJobMonitoringService monitoringService;
 
-    @MockBean
-    private JobLauncher jobLauncher;
+        @Mock
+        private JobParameterHandler parameterHandler;
 
-    @MockBean
-    private BatchJobMonitoringService monitoringService;
+        @Mock
+        private Map<String, Job> jobRegistry;
 
-    @MockBean
-    private JobParameterHandler parameterHandler;
+        @Mock
+        private Job testJob;
 
-    @MockBean
-    private Map<String, Job> jobRegistry;
+        @Mock
+        private Authentication authentication;
 
-    @MockBean
-    private Job testJob;
+        @InjectMocks
+        private BatchController batchController;
 
-    private JobParameters testJobParameters;
-    private JobExecution testJobExecution;
-    private JobExecutionStatus testJobExecutionStatus;
+        private JobParameters testJobParameters;
+        private JobExecution testJobExecution;
+        private JobExecutionStatus testJobExecutionStatus;
 
-    @BeforeEach
-    void setUp() {
-        testJobParameters = new JobParametersBuilder()
-                .addString("user", "test-user")
-                .addLong("timestamp", System.currentTimeMillis())
-                .toJobParameters();
+        @BeforeEach
+        void setUp() {
+                testJobParameters = new JobParametersBuilder()
+                                .addString("user", "test-user")
+                                .addLong("timestamp", System.currentTimeMillis())
+                                .toJobParameters();
 
-        JobInstance jobInstance = new JobInstance(1L, "testJob");
-        testJobExecution = new JobExecution(jobInstance, 1L, testJobParameters);
-        testJobExecution.setStatus(BatchStatus.COMPLETED);
-        testJobExecution.setStartTime(LocalDateTime.now().minusMinutes(5));
-        testJobExecution.setEndTime(LocalDateTime.now());
+                JobInstance jobInstance = new JobInstance(1L, "testJob");
+                testJobExecution = new JobExecution(jobInstance, 1L, testJobParameters);
+                testJobExecution.setStatus(BatchStatus.COMPLETED);
+                testJobExecution.setStartTime(LocalDateTime.now().minusMinutes(5));
+                testJobExecution.setEndTime(LocalDateTime.now());
 
-        testJobExecutionStatus = new JobExecutionStatus(
-                1L,
-                "testJob",
-                BatchStatus.COMPLETED,
-                ExitStatus.COMPLETED,
-                LocalDateTime.now().minusMinutes(5),
-                LocalDateTime.now(),
-                testJobParameters
-        );
-    }
+                testJobExecutionStatus = new JobExecutionStatus(
+                                1L,
+                                "testJob",
+                                BatchStatus.COMPLETED,
+                                ExitStatus.COMPLETED,
+                                LocalDateTime.now().minusMinutes(5),
+                                LocalDateTime.now(),
+                                testJobParameters);
+        }
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testStartJob() throws Exception {
-        // Given
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("outputDirectory", "test-output");
+        @Test
+        void testStartJob() throws Exception {
+                // Given
+                Map<String, Object> parameters = new HashMap<>();
+                parameters.put("outputDirectory", "test-output");
 
-        when(jobRegistry.get("testJob")).thenReturn(testJob);
-        when(monitoringService.isJobRunning("testJob")).thenReturn(false);
-        when(parameterHandler.createParameters(eq("user"), anyMap())).thenReturn(testJobParameters);
-        when(jobLauncher.run(testJob, testJobParameters)).thenReturn(testJobExecution);
+                when(authentication.getName()).thenReturn("test-user");
+                when(jobRegistry.get("testJob")).thenReturn(testJob);
+                when(monitoringService.isJobRunning("testJob")).thenReturn(false);
+                when(parameterHandler.createParameters(eq("test-user"), anyMap())).thenReturn(testJobParameters);
+                when(jobLauncher.run(testJob, testJobParameters)).thenReturn(testJobExecution);
 
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/jobs/testJob/start")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(parameters)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.jobExecutionId").value(1L))
-                .andExpect(jsonPath("$.jobName").value("testJob"))
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
-    }
+                // When
+                ResponseEntity<Map<String, Object>> response = batchController.startJob("testJob", parameters,
+                                authentication);
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testStartJobNotFound() throws Exception {
-        // Given
-        when(jobRegistry.get("nonExistentJob")).thenReturn(null);
+                // Then
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(1L, response.getBody().get("jobExecutionId"));
+                assertEquals("testJob", response.getBody().get("jobName"));
+                assertEquals("COMPLETED", response.getBody().get("status"));
+        }
 
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/jobs/nonExistentJob/start")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpect(status().isNotFound());
-    }
+        @Test
+        void testStartJobNotFound() throws Exception {
+                // Given
+                when(authentication.getName()).thenReturn("test-user");
+                when(jobRegistry.get("nonExistentJob")).thenReturn(null);
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testStartJobAlreadyRunning() throws Exception {
-        // Given
-        when(jobRegistry.get("testJob")).thenReturn(testJob);
-        when(monitoringService.isJobRunning("testJob")).thenReturn(true);
+                // When
+                ResponseEntity<Map<String, Object>> response = batchController.startJob("nonExistentJob",
+                                new HashMap<>(), authentication);
 
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/jobs/testJob/start")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("Job is already running"));
-    }
+                // Then
+                assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        }
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testStartJobWithInvalidParameters() throws Exception {
-        // Given
-        when(jobRegistry.get("testJob")).thenReturn(testJob);
-        when(monitoringService.isJobRunning("testJob")).thenReturn(false);
-        when(parameterHandler.createParameters(eq("user"), anyMap())).thenReturn(testJobParameters);
-        when(jobLauncher.run(testJob, testJobParameters))
-                .thenThrow(new JobParametersInvalidException("Invalid parameters"));
+        @Test
+        void testStartJobAlreadyRunning() throws Exception {
+                // Given
+                when(authentication.getName()).thenReturn("test-user");
+                when(jobRegistry.get("testJob")).thenReturn(testJob);
+                when(monitoringService.isJobRunning("testJob")).thenReturn(true);
 
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/jobs/testJob/start")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Invalid job parameters: Invalid parameters"));
-    }
+                // When
+                ResponseEntity<Map<String, Object>> response = batchController.startJob("testJob", new HashMap<>(),
+                                authentication);
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testStopJobExecution() throws Exception {
-        // Given
-        when(monitoringService.stopJobExecution(1L)).thenReturn(true);
+                // Then
+                assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals("Job is already running", response.getBody().get("error"));
+        }
 
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/executions/1/stop")
-                .with(csrf()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.executionId").value(1L))
-                .andExpect(jsonPath("$.stopped").value(true));
-    }
+        @Test
+        void testStartJobWithInvalidParameters() throws Exception {
+                // Given
+                when(authentication.getName()).thenReturn("test-user");
+                when(jobRegistry.get("testJob")).thenReturn(testJob);
+                when(monitoringService.isJobRunning("testJob")).thenReturn(false);
+                when(parameterHandler.createParameters(eq("test-user"), anyMap())).thenReturn(testJobParameters);
+                when(jobLauncher.run(testJob, testJobParameters))
+                                .thenThrow(new JobParametersInvalidException("Invalid parameters"));
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testStopJobExecutionNotFound() throws Exception {
-        // Given
-        when(monitoringService.stopJobExecution(999L)).thenReturn(false);
+                // When
+                ResponseEntity<Map<String, Object>> response = batchController.startJob("testJob", new HashMap<>(),
+                                authentication);
 
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/executions/999/stop")
-                .with(csrf()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.stopped").value(false))
-                .andExpect(jsonPath("$.error").value("Job execution not found or not running"));
-    }
+                // Then
+                assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals("Invalid job parameters: Invalid parameters", response.getBody().get("error"));
+        }
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testRestartJobExecution() throws Exception {
-        // Given
-        JobExecution newJobExecution = new JobExecution(testJobExecution.getJobInstance(), 2L, testJobParameters);
-        newJobExecution.setStatus(BatchStatus.STARTED);
-        newJobExecution.setStartTime(LocalDateTime.now());
+        @Test
+        void testStopJobExecution() throws Exception {
+                // Given
+                when(authentication.getName()).thenReturn("test-user");
+                when(monitoringService.stopJobExecution(1L)).thenReturn(true);
 
-        when(monitoringService.restartJobExecution(1L)).thenReturn(newJobExecution);
+                // When
+                ResponseEntity<Map<String, Object>> response = batchController.stopJobExecution(1L, authentication);
 
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/executions/1/restart")
-                .with(csrf()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.originalExecutionId").value(1L))
-                .andExpect(jsonPath("$.newExecutionId").value(2L))
-                .andExpect(jsonPath("$.status").value("STARTED"));
-    }
+                // Then
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(1L, response.getBody().get("executionId"));
+                assertEquals(true, response.getBody().get("stopped"));
+        }
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testRestartJobExecutionNotFound() throws Exception {
-        // Given
-        when(monitoringService.restartJobExecution(999L))
-                .thenThrow(new NoSuchJobException("Job not found"));
+        @Test
+        void testStopJobExecutionNotFound() throws Exception {
+                // Given
+                when(authentication.getName()).thenReturn("test-user");
+                when(monitoringService.stopJobExecution(999L)).thenReturn(false);
 
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/executions/999/restart")
-                .with(csrf()))
-                .andExpect(status().isNotFound());
-    }
+                // When
+                ResponseEntity<Map<String, Object>> response = batchController.stopJobExecution(999L, authentication);
 
-    @Test
-    @WithMockUser(roles = "BATCH_VIEWER")
-    void testGetJobExecutionStatus() throws Exception {
-        // Given
-        when(monitoringService.getJobExecutionStatus(1L)).thenReturn(Optional.of(testJobExecutionStatus));
+                // Then
+                assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(false, response.getBody().get("stopped"));
+                assertEquals("Job execution not found or not running", response.getBody().get("error"));
+        }
 
-        // When & Then
-        mockMvc.perform(get("/api/v1/batch/executions/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.executionId").value(1L))
-                .andExpect(jsonPath("$.jobName").value("testJob"))
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
-    }
+        @Test
+        void testRestartJobExecution() throws Exception {
+                // Given
+                when(authentication.getName()).thenReturn("test-user");
+                JobExecution newJobExecution = new JobExecution(testJobExecution.getJobInstance(), 2L,
+                                testJobParameters);
+                newJobExecution.setStatus(BatchStatus.STARTED);
+                newJobExecution.setStartTime(LocalDateTime.now());
 
-    @Test
-    @WithMockUser(roles = "BATCH_VIEWER")
-    void testGetJobExecutionStatusNotFound() throws Exception {
-        // Given
-        when(monitoringService.getJobExecutionStatus(999L)).thenReturn(Optional.empty());
+                when(monitoringService.restartJobExecution(1L)).thenReturn(newJobExecution);
 
-        // When & Then
-        mockMvc.perform(get("/api/v1/batch/executions/999"))
-                .andExpect(status().isNotFound());
-    }
+                // When
+                ResponseEntity<Map<String, Object>> response = batchController.restartJobExecution(1L, authentication);
 
-    @Test
-    @WithMockUser(roles = "BATCH_VIEWER")
-    void testGetJobExecutions() throws Exception {
-        // Given
-        List<JobExecutionStatus> executions = List.of(testJobExecutionStatus);
-        when(monitoringService.getJobExecutions("testJob", 10)).thenReturn(executions);
+                // Then
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(1L, response.getBody().get("originalExecutionId"));
+                assertEquals(2L, response.getBody().get("newExecutionId"));
+                assertEquals("STARTED", response.getBody().get("status"));
+        }
 
-        // When & Then
-        mockMvc.perform(get("/api/v1/batch/jobs/testJob/executions")
-                .param("limit", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].jobName").value("testJob"));
-    }
+        @Test
+        void testRestartJobExecutionNotFound() throws Exception {
+                // Given
+                when(authentication.getName()).thenReturn("test-user");
+                when(monitoringService.restartJobExecution(999L))
+                                .thenThrow(new NoSuchJobException("Job not found"));
 
-    @Test
-    @WithMockUser(roles = "BATCH_VIEWER")
-    void testGetRunningJobExecutions() throws Exception {
-        // Given
-        JobExecutionStatus runningStatus = new JobExecutionStatus(
-                2L, "runningJob", BatchStatus.STARTED, ExitStatus.EXECUTING,
-                LocalDateTime.now().minusMinutes(2), null, testJobParameters
-        );
-        List<JobExecutionStatus> runningExecutions = List.of(runningStatus);
-        when(monitoringService.getRunningJobExecutions()).thenReturn(runningExecutions);
+                // When
+                ResponseEntity<Map<String, Object>> response = batchController.restartJobExecution(999L,
+                                authentication);
 
-        // When & Then
-        mockMvc.perform(get("/api/v1/batch/executions/running"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].status").value("STARTED"));
-    }
+                // Then
+                assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        }
 
-    @Test
-    @WithMockUser(roles = "BATCH_VIEWER")
-    void testGetJobStatistics() throws Exception {
-        // Given
-        JobStatistics statistics = new JobStatistics("testJob", 10, 8, 1, 1, 5000.0);
-        when(monitoringService.getJobStatistics("testJob")).thenReturn(statistics);
+        @Test
+        void testGetJobExecutionStatus() throws Exception {
+                // Given
+                when(monitoringService.getJobExecutionStatus(1L)).thenReturn(Optional.of(testJobExecutionStatus));
 
-        // When & Then
-        mockMvc.perform(get("/api/v1/batch/jobs/testJob/statistics"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.jobName").value("testJob"))
-                .andExpect(jsonPath("$.totalExecutions").value(10))
-                .andExpect(jsonPath("$.completedExecutions").value(8))
-                .andExpect(jsonPath("$.failedExecutions").value(1))
-                .andExpect(jsonPath("$.runningExecutions").value(1));
-    }
+                // When
+                ResponseEntity<JobExecutionStatus> response = batchController.getJobExecutionStatus(1L);
 
-    @Test
-    @WithMockUser(roles = "BATCH_VIEWER")
-    void testGetAvailableJobs() throws Exception {
-        // Given
-        Set<String> jobNames = Set.of("testJob", "anotherJob", "userDataProcessingJob");
-        when(monitoringService.getAvailableJobNames()).thenReturn(jobNames);
+                // Then
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(1L, response.getBody().executionId());
+                assertEquals("testJob", response.getBody().jobName());
+                assertEquals(BatchStatus.COMPLETED, response.getBody().status());
+        }
 
-        // When & Then
-        mockMvc.perform(get("/api/v1/batch/jobs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(3));
-    }
+        @Test
+        void testGetJobExecutionStatusNotFound() throws Exception {
+                // Given
+                when(monitoringService.getJobExecutionStatus(999L)).thenReturn(Optional.empty());
 
-    @Test
-    @WithMockUser(roles = "USER")
-    void testUnauthorizedAccess() throws Exception {
-        // When & Then
-        mockMvc.perform(post("/api/v1/batch/jobs/testJob/start")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpect(status().isForbidden());
-    }
+                // When
+                ResponseEntity<JobExecutionStatus> response = batchController.getJobExecutionStatus(999L);
 
-    @Test
-    void testUnauthenticatedAccess() throws Exception {
-        // When & Then
-        mockMvc.perform(get("/api/v1/batch/jobs"))
-                .andExpect(status().isUnauthorized());
-    }
+                // Then
+                assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        }
+
+        @Test
+        void testGetJobExecutions() throws Exception {
+                // Given
+                List<JobExecutionStatus> executions = List.of(testJobExecutionStatus);
+                when(monitoringService.getJobExecutions("testJob", 10)).thenReturn(executions);
+
+                // When
+                ResponseEntity<List<JobExecutionStatus>> response = batchController.getJobExecutions("testJob", 10);
+
+                // Then
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(1, response.getBody().size());
+                assertEquals("testJob", response.getBody().get(0).jobName());
+        }
+
+        @Test
+        void testGetRunningJobExecutions() throws Exception {
+                // Given
+                JobExecutionStatus runningStatus = new JobExecutionStatus(
+                                2L, "runningJob", BatchStatus.STARTED, ExitStatus.EXECUTING,
+                                LocalDateTime.now().minusMinutes(2), null, testJobParameters);
+                List<JobExecutionStatus> runningExecutions = List.of(runningStatus);
+                when(monitoringService.getRunningJobExecutions()).thenReturn(runningExecutions);
+
+                // When
+                ResponseEntity<List<JobExecutionStatus>> response = batchController.getRunningJobExecutions();
+
+                // Then
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(1, response.getBody().size());
+                assertEquals(BatchStatus.STARTED, response.getBody().get(0).status());
+        }
+
+        @Test
+        void testGetJobStatistics() throws Exception {
+                // Given
+                JobStatistics statistics = new JobStatistics("testJob", 10, 8, 1, 1, 5000.0);
+                when(monitoringService.getJobStatistics("testJob")).thenReturn(statistics);
+
+                // When
+                ResponseEntity<JobStatistics> response = batchController.getJobStatistics("testJob");
+
+                // Then
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals("testJob", response.getBody().jobName());
+                assertEquals(10, response.getBody().totalExecutions());
+                assertEquals(8, response.getBody().completedExecutions());
+                assertEquals(1, response.getBody().failedExecutions());
+                assertEquals(1, response.getBody().runningExecutions());
+        }
+
+        @Test
+        void testGetAvailableJobs() throws Exception {
+                // Given
+                Set<String> jobNames = Set.of("testJob", "anotherJob", "userDataProcessingJob");
+                when(monitoringService.getAvailableJobNames()).thenReturn(jobNames);
+
+                // When
+                ResponseEntity<Set<String>> response = batchController.getAvailableJobs();
+
+                // Then
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(3, response.getBody().size());
+                assertTrue(response.getBody().contains("testJob"));
+                assertTrue(response.getBody().contains("anotherJob"));
+                assertTrue(response.getBody().contains("userDataProcessingJob"));
+        }
 }

@@ -2,7 +2,7 @@ package com.enterprise.api.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import org.hibernate.annotations.Where;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * FileMetadata entity for tracking uploaded files and their metadata.
@@ -20,7 +20,7 @@ import org.hibernate.annotations.Where;
     @Index(name = "idx_file_uploaded_by", columnList = "uploaded_by_id"),
     @Index(name = "idx_file_deleted", columnList = "deleted")
 })
-@Where(clause = "deleted = false")
+@SQLRestriction("deleted = false")
 public class FileMetadata extends AuditableEntity {
 
     @Id

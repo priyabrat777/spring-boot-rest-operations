@@ -11,7 +11,10 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -33,6 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DataJpaTest
 @ActiveProfiles("test")
+@Transactional
+@Rollback
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class PermissionRepositoryTest {
 
     @Autowired
@@ -40,12 +46,6 @@ class PermissionRepositoryTest {
 
     @Autowired
     private PermissionRepository permissionRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private UserRepository userRepository;
 
     private Permission readUserPermission;
     private Permission writeUserPermission;
@@ -58,7 +58,7 @@ class PermissionRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Create permissions
+        // Create permissions first and persist them
         readUserPermission = new Permission("READ_USER", "Permission to read user data", "user", "read");
         readUserPermission.setSystemPermission(false);
 
@@ -75,7 +75,14 @@ class PermissionRepositoryTest {
         deletedPermission.setSystemPermission(false);
         deletedPermission.setDeleted(true);
 
-        // Create roles
+        // Persist permissions first
+        entityManager.persistAndFlush(readUserPermission);
+        entityManager.persistAndFlush(writeUserPermission);
+        entityManager.persistAndFlush(readFilePermission);
+        entityManager.persistAndFlush(systemPermission);
+        entityManager.persistAndFlush(deletedPermission);
+
+        // Create roles and establish relationships
         adminRole = new Role("ADMIN", "Administrator role");
         adminRole.addPermission(readUserPermission);
         adminRole.addPermission(writeUserPermission);
@@ -85,20 +92,17 @@ class PermissionRepositoryTest {
         userRole.addPermission(readUserPermission);
         userRole.addPermission(readFilePermission);
 
-        // Create user
+        // Persist roles
+        entityManager.persistAndFlush(adminRole);
+        entityManager.persistAndFlush(userRole);
+
+        // Create user and establish relationships
         testUser = new User("testuser", "password123", "test@example.com");
         testUser.setEnabled(true);
         testUser.addRole(adminRole);
         testUser.addRole(userRole);
 
-        // Persist entities
-        entityManager.persistAndFlush(readUserPermission);
-        entityManager.persistAndFlush(writeUserPermission);
-        entityManager.persistAndFlush(readFilePermission);
-        entityManager.persistAndFlush(systemPermission);
-        entityManager.persistAndFlush(deletedPermission);
-        entityManager.persistAndFlush(adminRole);
-        entityManager.persistAndFlush(userRole);
+        // Persist user
         entityManager.persistAndFlush(testUser);
         entityManager.clear();
     }

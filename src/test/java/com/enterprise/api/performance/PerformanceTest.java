@@ -6,12 +6,12 @@ import com.enterprise.api.util.PaginationUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -34,13 +34,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * - 5.3: Performance optimization with caching and pagination
  * - 5.5: Query optimization with entity graphs
  */
-@SpringBootTest
+@DataJpaTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
     "spring.jpa.show-sql=false",
     "logging.level.org.hibernate.SQL=WARN"
 })
-@Transactional
 class PerformanceTest {
 
     @Autowired
@@ -50,6 +49,10 @@ class PerformanceTest {
 
     @BeforeEach
     void setUp() {
+        // Clear existing data to avoid unique constraint violations
+        userRepository.deleteAll();
+        userRepository.flush();
+        
         // Create test users for performance testing
         testUsers = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
@@ -110,7 +113,7 @@ class PerformanceTest {
         Duration pageTime = Duration.between(start, Instant.now());
         
         start = Instant.now();
-        var slice = userRepository.findActiveSlice(pageable);
+        Slice<User> slice = userRepository.findActiveSlice(pageable);
         
         Duration sliceTime = Duration.between(start, Instant.now());
         
@@ -149,6 +152,7 @@ class PerformanceTest {
             List<User> secondPage = userRepository.findActiveCursorBased(lastId, pageable);
             Duration secondPageTime = Duration.between(start, Instant.now());
             
+            assertNotNull(secondPage);
             System.out.println("First page cursor time: " + firstPageTime.toMillis() + "ms");
             System.out.println("Second page cursor time: " + secondPageTime.toMillis() + "ms");
             
@@ -273,7 +277,6 @@ class PerformanceTest {
         List<Runnable> operations = new ArrayList<>();
         
         for (int i = 0; i < 10; i++) {
-            final int index = i;
             operations.add(() -> {
                 // Simulate database operations
                 userRepository.findAllActive(PaginationUtil.createPageable(0, 10));

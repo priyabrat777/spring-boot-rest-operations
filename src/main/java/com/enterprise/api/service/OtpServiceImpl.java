@@ -8,6 +8,8 @@ import com.enterprise.api.entity.Otp;
 import com.enterprise.api.entity.OtpPurpose;
 import com.enterprise.api.entity.OtpType;
 import com.enterprise.api.repository.OtpRepository;
+import com.enterprise.api.service.external.EmailServiceClient;
+import com.enterprise.api.service.external.SmsServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,8 @@ public class OtpServiceImpl implements OtpService {
     private final OtpRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom;
+    private final EmailServiceClient emailServiceClient;
+    private final SmsServiceClient smsServiceClient;
 
     // Configuration properties
     @Value("${app.otp.default-expiration-minutes:5}")
@@ -60,9 +64,12 @@ public class OtpServiceImpl implements OtpService {
     private boolean numericOnly;
 
     @Autowired
-    public OtpServiceImpl(OtpRepository otpRepository, PasswordEncoder passwordEncoder) {
+    public OtpServiceImpl(OtpRepository otpRepository, PasswordEncoder passwordEncoder,
+                         EmailServiceClient emailServiceClient, SmsServiceClient smsServiceClient) {
         this.otpRepository = otpRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailServiceClient = emailServiceClient;
+        this.smsServiceClient = smsServiceClient;
         this.secureRandom = new SecureRandom();
     }
 
@@ -208,11 +215,13 @@ public class OtpServiceImpl implements OtpService {
     }
 
     @Override
+    @Transactional
     public int invalidateOtps(String identifier, OtpPurpose purpose) {
         return otpRepository.invalidateOtpsForIdentifierAndPurpose(identifier, purpose, LocalDateTime.now());
     }
 
     @Override
+    @Transactional
     public int cleanupExpiredOtps() {
         return otpRepository.softDeleteExpiredOtps(LocalDateTime.now());
     }
@@ -299,9 +308,11 @@ public class OtpServiceImpl implements OtpService {
                         String.format("Your OTP code is: %s. This code will expire in %d minutes.", 
                                     otpCode, defaultExpirationMinutes);
         
-        // In a real implementation, this would integrate with an email service
+        // Use external email service client
+        boolean sent = emailServiceClient.sendEmail(email, subject, message);
+        
         logger.info("Email sent to: {} with subject: {}", maskIdentifier(email), subject);
-        return true;
+        return sent;
     }
 
     private boolean simulateSmsDelivery(String phone, String otpCode, OtpPurpose purpose, String customMessage) {
@@ -311,9 +322,11 @@ public class OtpServiceImpl implements OtpService {
                         String.format("Your OTP code is: %s. Valid for %d minutes.", 
                                     otpCode, defaultExpirationMinutes);
         
-        // In a real implementation, this would integrate with an SMS service
+        // Use external SMS service client
+        boolean sent = smsServiceClient.sendSms(phone, message);
+        
         logger.info("SMS sent to: {} with message length: {}", maskIdentifier(phone), message.length());
-        return true;
+        return sent;
     }
 
     private boolean simulateVoiceDelivery(String phone, String otpCode, OtpPurpose purpose) {

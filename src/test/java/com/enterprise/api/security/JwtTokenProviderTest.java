@@ -145,7 +145,7 @@ class JwtTokenProviderTest {
             .map(GrantedAuthority::getAuthority)
             .collect(java.util.stream.Collectors.toSet());
         
-        assertThat(authorityNames).contains("ROLE_USER", "PERMISSION_USER:READ", "PERMISSION_USER:WRITE");
+        assertThat(authorityNames).contains("ROLE_USER", "PERMISSION_USER_READ", "PERMISSION_USER_WRITE");
     }
 
     @Test

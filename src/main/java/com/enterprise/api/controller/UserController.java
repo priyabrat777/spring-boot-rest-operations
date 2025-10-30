@@ -52,7 +52,6 @@ import java.util.Optional;
 @Tag(name = "User Management", description = "User CRUD operations with role-based access control and data filtering")
 @RestController
 @RequestMapping("/api/v1/users")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);

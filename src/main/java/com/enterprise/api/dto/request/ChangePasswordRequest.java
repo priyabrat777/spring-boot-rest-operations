@@ -1,5 +1,6 @@
 package com.enterprise.api.dto.request;
 
+import com.enterprise.api.validation.PasswordComplexity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -17,6 +18,7 @@ public class ChangePasswordRequest {
 
     @NotBlank(message = "New password is required")
     @Size(min = 8, max = 128, message = "New password must be between 8 and 128 characters")
+    @PasswordComplexity
     private String newPassword;
 
     @NotBlank(message = "Password confirmation is required")

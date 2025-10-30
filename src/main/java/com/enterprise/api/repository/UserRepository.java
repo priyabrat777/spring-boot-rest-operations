@@ -34,6 +34,7 @@ public interface UserRepository extends BaseRepository<User, Long> {
      * @return optional containing the user if found and active
      */
     @Query("SELECT u FROM User u WHERE u.username = :username AND u.deleted = false")
+    @org.springframework.cache.annotation.Cacheable(value = "users", key = "#username")
     Optional<User> findByUsernameActive(@Param("username") String username);
 
     /**
@@ -162,6 +163,7 @@ public interface UserRepository extends BaseRepository<User, Long> {
      */
     @Modifying
     @Query("UPDATE User u SET u.enabled = :enabled, u.lastModifiedDate = CURRENT_TIMESTAMP WHERE u.id = :id AND u.deleted = false")
+    @org.springframework.cache.annotation.CacheEvict(value = "users", allEntries = true)
     int updateEnabledStatus(@Param("id") Long id, @Param("enabled") boolean enabled);
 
     /**

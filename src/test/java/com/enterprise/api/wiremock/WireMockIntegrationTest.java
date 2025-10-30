@@ -7,6 +7,7 @@ import com.enterprise.api.dto.response.OtpGenerationResponse;
 import com.enterprise.api.entity.OtpPurpose;
 import com.enterprise.api.entity.OtpType;
 import com.enterprise.api.entity.User;
+import com.enterprise.api.repository.UserRepository;
 import com.enterprise.api.service.FileService;
 import com.enterprise.api.service.OtpService;
 import com.enterprise.api.wiremock.stubs.FileStorageStubs;
@@ -37,6 +38,9 @@ class WireMockIntegrationTest extends WireMockTestBase {
 
     @Autowired
     private FileService fileService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     protected void setupWireMockStubs() {
@@ -406,10 +410,10 @@ class WireMockIntegrationTest extends WireMockTestBase {
 
     private User createTestUser() {
         User user = new User();
-        user.setId(1L);
         user.setUsername("testuser");
         user.setEmail("test@example.com");
         user.setPassword("encoded-password");
-        return user;
+        // Save to database to avoid foreign key constraint violations
+        return userRepository.save(user);
     }
 }

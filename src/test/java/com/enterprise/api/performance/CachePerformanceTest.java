@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+@org.springframework.context.annotation.Import(com.enterprise.api.config.TestConfig.class)
 class CachePerformanceTest {
 
     @Autowired

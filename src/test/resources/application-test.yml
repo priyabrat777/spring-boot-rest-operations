@@ -19,6 +19,13 @@ spring:
       enabled: false
     jdbc:
       initialize-schema: embedded
+  
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    time-zone: UTC
 
 # Minimal logging for tests
 logging:
@@ -43,3 +50,18 @@ app:
   
   otp:
     expiration: 60000 # 1 minute for tests
+  
+  external:
+    email:
+      enabled: true
+    sms:
+      enabled: true
+    file-storage:
+      enabled: true
+
+# Disable SpringDoc for tests to avoid compatibility issues
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

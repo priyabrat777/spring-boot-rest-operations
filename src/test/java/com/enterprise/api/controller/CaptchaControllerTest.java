@@ -1,19 +1,19 @@
 package com.enterprise.api.controller;
 
 import com.enterprise.api.dto.request.CaptchaValidationRequest;
-import com.enterprise.api.dto.response.CaptchaResponse;
 import com.enterprise.api.service.CaptchaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.awt.image.BufferedImage;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -22,7 +22,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Unit tests for CaptchaController.
  */
-@WebMvcTest(CaptchaController.class)
+@WebMvcTest(controllers = CaptchaController.class, 
+    excludeAutoConfiguration = {
+        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class
+    },
+    excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, 
+        classes = {
+            com.enterprise.api.security.JwtAuthenticationFilter.class,
+            com.enterprise.api.security.JwtTokenProvider.class,
+            com.enterprise.api.security.CustomUserDetailsService.class
+        }))
 class CaptchaControllerTest {
     
     @Autowired
@@ -226,7 +236,7 @@ class CaptchaControllerTest {
         // When & Then
         mockMvc.perform(options("/api/captcha"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Allow", "GET, POST, DELETE, OPTIONS"));
+                .andExpect(header().string("Allow", "GET, POST, OPTIONS, HEAD"));
     }
     
     @Test

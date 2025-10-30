@@ -6,6 +6,7 @@ import com.enterprise.api.dto.response.FileUploadResponse;
 import com.enterprise.api.entity.FileMetadata;
 import com.enterprise.api.entity.User;
 import com.enterprise.api.repository.FileMetadataRepository;
+import com.enterprise.api.service.external.FileStorageServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +47,7 @@ public class FileServiceImpl implements FileService {
     private static final Logger logger = LoggerFactory.getLogger(FileServiceImpl.class);
 
     private final FileMetadataRepository fileMetadataRepository;
+    private final FileStorageServiceClient fileStorageServiceClient;
     private Path fileStorageLocation;
 
     // Configuration properties
@@ -58,8 +60,10 @@ public class FileServiceImpl implements FileService {
     @Value("${app.file.allowed-types:image/jpeg,image/png,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}")
     private String allowedTypes;
 
-    public FileServiceImpl(FileMetadataRepository fileMetadataRepository) {
+    public FileServiceImpl(FileMetadataRepository fileMetadataRepository, 
+                          FileStorageServiceClient fileStorageServiceClient) {
         this.fileMetadataRepository = fileMetadataRepository;
+        this.fileStorageServiceClient = fileStorageServiceClient;
         // Initialize with a default path, will be set properly after @Value injection
         this.fileStorageLocation = null;
     }
@@ -98,9 +102,12 @@ public class FileServiceImpl implements FileService {
         }
 
         try {
-            // Store file physically
+            // Store file physically (local) and externally
             Path targetLocation = this.fileStorageLocation.resolve(storedFileName);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            
+            // Also upload to external storage service
+            fileStorageServiceClient.uploadFile(file, storedFileName);
 
             // Create file metadata
             FileMetadata fileMetadata = new FileMetadata(
@@ -147,6 +154,18 @@ public class FileServiceImpl implements FileService {
         }
 
         try {
+            // Try to download from external storage first
+            Resource externalResource = fileStorageServiceClient.downloadFile(storedFileName);
+            if (externalResource != null) {
+                // Increment download count
+                fileMetadata.incrementDownloadCount();
+                fileMetadataRepository.save(fileMetadata);
+                
+                logger.info("File downloaded successfully from external storage: {}", storedFileName);
+                return externalResource;
+            }
+            
+            // Fallback to local storage
             Path filePath = Paths.get(fileMetadata.getFilePath()).normalize();
             Resource resource = new UrlResource(filePath.toUri());
             
@@ -155,7 +174,7 @@ public class FileServiceImpl implements FileService {
                 fileMetadata.incrementDownloadCount();
                 fileMetadataRepository.save(fileMetadata);
                 
-                logger.info("File downloaded successfully: {}", storedFileName);
+                logger.info("File downloaded successfully from local storage: {}", storedFileName);
                 return resource;
             } else {
                 logger.error("File not found on disk: {}", filePath);
@@ -190,6 +209,9 @@ public class FileServiceImpl implements FileService {
 
         // Soft delete in database
         fileMetadataRepository.softDelete(fileId);
+
+        // Delete from external storage
+        fileStorageServiceClient.deleteFile(fileMetadata.getStoredFileName());
 
         // Delete physical file
         try {

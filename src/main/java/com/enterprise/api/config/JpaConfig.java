@@ -1,13 +1,18 @@
 package com.enterprise.api.config;
 
 import com.enterprise.api.audit.AuditAware;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+
+import jakarta.persistence.EntityManagerFactory;
 
 /**
  * JPA configuration class that enables auditing and transaction management.
@@ -34,13 +39,18 @@ public class JpaConfig {
         return new AuditAware();
     }
 
+
+
     /**
-     * Configures ObjectMapper for JSON serialization in audit logs.
+     * Primary transaction manager for JPA operations.
+     * This is the default transaction manager used by @Transactional.
      * 
-     * @return ObjectMapper instance
+     * @param entityManagerFactory the entity manager factory
+     * @return JPA transaction manager
      */
     @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+    @Primary
+    public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory) {
+        return new JpaTransactionManager(entityManagerFactory);
     }
 }

@@ -1,5 +1,6 @@
 package com.enterprise.api.dto.request;
 
+import com.enterprise.api.validation.PasswordComplexity;
 import jakarta.validation.constraints.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class CreateUserRequest {
 
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters")
+    @PasswordComplexity
     private String password;
 
     @NotBlank(message = "Email is required")

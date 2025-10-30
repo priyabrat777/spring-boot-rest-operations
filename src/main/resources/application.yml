@@ -64,6 +64,13 @@ spring:
   
   cache:
     type: simple
+  
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    time-zone: UTC
 
 # Management endpoints
 management:
@@ -152,7 +159,7 @@ management:
 # Application specific configuration
 app:
   jwt:
-    secret: ${JWT_SECRET:mySecretKey}
+    secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationMustBe32CharsLong123456789}
     expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
     refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days in milliseconds
   

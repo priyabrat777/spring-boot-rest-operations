@@ -11,6 +11,9 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.Rollback;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +32,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * - 10.2: Integration tests with H2 database
  */
 @DataJpaTest
+@Transactional
+@Rollback
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class FileMetadataRepositoryTest {
 
     @Autowired
@@ -51,34 +57,38 @@ class FileMetadataRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Create roles
-        Role userRole = new Role();
-        userRole.setName("USER");
-        userRole = roleRepository.save(userRole);
+        // Create roles - check if role already exists to avoid unique constraint violation
+        Role userRole = roleRepository.findByNameActive("USER").orElseGet(() -> {
+            Role newRole = new Role();
+            newRole.setName("USER");
+            return roleRepository.save(newRole);
+        });
 
-        // Create users
+        // Create users with unique usernames for each test
+        String testId = String.valueOf(System.currentTimeMillis());
+        
         testUser = new User();
-        testUser.setUsername("testuser");
-        testUser.setEmail("test@example.com");
+        testUser.setUsername("testuser" + testId);
+        testUser.setEmail("test" + testId + "@example.com");
         testUser.setPassword("password");
         testUser.setRoles(Set.of(userRole));
         testUser = userRepository.save(testUser);
 
         otherUser = new User();
-        otherUser.setUsername("otheruser");
-        otherUser.setEmail("other@example.com");
+        otherUser.setUsername("otheruser" + testId);
+        otherUser.setEmail("other" + testId + "@example.com");
         otherUser.setPassword("password");
         otherUser.setRoles(Set.of(userRole));
         otherUser = userRepository.save(otherUser);
 
-        // Create test files
+        // Create test files with valid hexadecimal checksums
         testFile1 = new FileMetadata();
         testFile1.setOriginalFileName("test1.txt");
-        testFile1.setStoredFileName("uuid1-test1.txt");
+        testFile1.setStoredFileName("uuid1-test1-" + testId + ".txt");
         testFile1.setContentType("text/plain");
         testFile1.setFileSize(1024L);
-        testFile1.setFilePath("/uploads/uuid1-test1.txt");
-        testFile1.setChecksum("checksum1");
+        testFile1.setFilePath("/uploads/uuid1-test1-" + testId + ".txt");
+        testFile1.setChecksum("a1b2c3d4e5f6789012345678901234567890abcd");
         testFile1.setUploadedBy(testUser);
         testFile1.setPublicAccess(false);
         testFile1.setDownloadCount(5L);
@@ -87,11 +97,11 @@ class FileMetadataRepositoryTest {
 
         testFile2 = new FileMetadata();
         testFile2.setOriginalFileName("image.jpg");
-        testFile2.setStoredFileName("uuid2-image.jpg");
+        testFile2.setStoredFileName("uuid2-image-" + testId + ".jpg");
         testFile2.setContentType("image/jpeg");
         testFile2.setFileSize(2048L);
-        testFile2.setFilePath("/uploads/uuid2-image.jpg");
-        testFile2.setChecksum("checksum2");
+        testFile2.setFilePath("/uploads/uuid2-image-" + testId + ".jpg");
+        testFile2.setChecksum("b2c3d4e5f6789012345678901234567890abcdef");
         testFile2.setUploadedBy(testUser);
         testFile2.setPublicAccess(false);
         testFile2.setDownloadCount(10L);
@@ -100,11 +110,11 @@ class FileMetadataRepositoryTest {
 
         publicFile = new FileMetadata();
         publicFile.setOriginalFileName("public.pdf");
-        publicFile.setStoredFileName("uuid3-public.pdf");
+        publicFile.setStoredFileName("uuid3-public-" + testId + ".pdf");
         publicFile.setContentType("application/pdf");
         publicFile.setFileSize(4096L);
-        publicFile.setFilePath("/uploads/uuid3-public.pdf");
-        publicFile.setChecksum("checksum3");
+        publicFile.setFilePath("/uploads/uuid3-public-" + testId + ".pdf");
+        publicFile.setChecksum("c3d4e5f6789012345678901234567890abcdef12");
         publicFile.setUploadedBy(otherUser);
         publicFile.setPublicAccess(true);
         publicFile.setDownloadCount(15L);
@@ -117,7 +127,7 @@ class FileMetadataRepositoryTest {
     @Test
     void findByStoredFileName_Success() {
         // Act
-        Optional<FileMetadata> result = fileMetadataRepository.findByStoredFileName("uuid1-test1.txt");
+        Optional<FileMetadata> result = fileMetadataRepository.findByStoredFileName(testFile1.getStoredFileName());
 
         // Assert
         assertTrue(result.isPresent());
@@ -312,7 +322,7 @@ class FileMetadataRepositoryTest {
     @Test
     void existsByChecksum_Success() {
         // Act
-        boolean exists = fileMetadataRepository.existsByChecksum("checksum1");
+        boolean exists = fileMetadataRepository.existsByChecksum(testFile1.getChecksum());
         boolean notExists = fileMetadataRepository.existsByChecksum("nonexistent");
 
         // Assert
@@ -323,7 +333,7 @@ class FileMetadataRepositoryTest {
     @Test
     void findByChecksum_Success() {
         // Act
-        Optional<FileMetadata> result = fileMetadataRepository.findByChecksum("checksum1");
+        Optional<FileMetadata> result = fileMetadataRepository.findByChecksum(testFile1.getChecksum());
 
         // Assert
         assertTrue(result.isPresent());
@@ -346,13 +356,14 @@ class FileMetadataRepositoryTest {
     @Test
     void findOrphanedFiles_Success() {
         // Arrange - Create an orphaned file
+        String testId = String.valueOf(System.currentTimeMillis());
         FileMetadata orphanedFile = new FileMetadata();
         orphanedFile.setOriginalFileName("orphaned.txt");
-        orphanedFile.setStoredFileName("uuid-orphaned.txt");
+        orphanedFile.setStoredFileName("uuid-orphaned-" + testId + ".txt");
         orphanedFile.setContentType("text/plain");
         orphanedFile.setFileSize(512L);
-        orphanedFile.setFilePath("/uploads/uuid-orphaned.txt");
-        orphanedFile.setChecksum("orphaned-checksum");
+        orphanedFile.setFilePath("/uploads/uuid-orphaned-" + testId + ".txt");
+        orphanedFile.setChecksum("d4e5f6789012345678901234567890abcdef1234");
         orphanedFile.setUploadedBy(null); // Orphaned
         orphanedFile.setPublicAccess(false);
         fileMetadataRepository.save(orphanedFile);
@@ -397,18 +408,28 @@ class FileMetadataRepositoryTest {
         Long fileId = testFile1.getId();
 
         // Act
-        fileMetadataRepository.softDelete(fileId);
+        int result = fileMetadataRepository.softDelete(fileId);
         entityManager.flush();
-        entityManager.clear();
 
         // Assert
-        Optional<FileMetadata> result = fileMetadataRepository.findById(fileId);
-        assertFalse(result.isPresent()); // Should not be found due to @Where clause
+        assertEquals(1, result); // Should return 1 for successful update
+        
+        // Clear the persistence context to force a fresh query
+        entityManager.clear();
+        
+        // Should not be found due to @SQLRestriction clause
+        Optional<FileMetadata> foundFile = fileMetadataRepository.findById(fileId);
+        assertFalse(foundFile.isPresent());
 
-        // But should be found when querying without the @Where clause
-        FileMetadata deletedFile = entityManager.find(FileMetadata.class, fileId);
-        assertNotNull(deletedFile);
-        assertTrue(deletedFile.isDeleted());
+        // Verify the entity is soft deleted by using a native query to bypass @SQLRestriction
+        Object[] deletedFileData = (Object[]) entityManager.getEntityManager().createNativeQuery(
+            "SELECT id, deleted FROM file_metadata WHERE id = ?")
+            .setParameter(1, fileId)
+            .getSingleResult();
+        
+        assertNotNull(deletedFileData);
+        assertEquals(fileId, ((Number) deletedFileData[0]).longValue());
+        assertTrue((Boolean) deletedFileData[1]); // deleted flag should be true
     }
 
     @Test
@@ -435,7 +456,8 @@ class FileMetadataRepositoryTest {
     @Test
     void findByIdActive_SoftDeleted_NotFound() {
         // Arrange
-        fileMetadataRepository.softDelete(testFile1.getId());
+        int deleteResult = fileMetadataRepository.softDelete(testFile1.getId());
+        assertEquals(1, deleteResult);
         entityManager.flush();
         entityManager.clear();
 

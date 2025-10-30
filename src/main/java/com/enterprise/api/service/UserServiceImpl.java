@@ -5,7 +5,9 @@ import com.enterprise.api.dto.request.CreateUserRequest;
 import com.enterprise.api.dto.request.UpdateUserRequest;
 import com.enterprise.api.dto.request.ChangePasswordRequest;
 import com.enterprise.api.dto.response.UserResponse;
+import com.enterprise.api.entity.Role;
 import com.enterprise.api.entity.User;
+import com.enterprise.api.repository.RoleRepository;
 import com.enterprise.api.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,11 +41,12 @@ public class UserServiceImpl implements UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -81,6 +84,15 @@ public class UserServiceImpl implements UserService {
             user.setPassword(encodePassword(createUserRequest.getPassword()));
             user.setEnabled(true);
             user.setAccountNonLocked(true);
+
+            // Assign roles if provided
+            if (createUserRequest.getRoleIds() != null && !createUserRequest.getRoleIds().isEmpty()) {
+                for (Long roleId : createUserRequest.getRoleIds()) {
+                    Role role = roleRepository.findByIdActive(roleId)
+                            .orElseThrow(() -> new IllegalArgumentException("Role not found with ID: " + roleId));
+                    user.addRole(role);
+                }
+            }
 
             user = userRepository.save(user);
             logger.info("User created successfully with ID: {} by user: {}", user.getId(), authentication.getName());

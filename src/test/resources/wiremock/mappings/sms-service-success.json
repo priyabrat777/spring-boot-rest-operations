@@ -13,14 +13,7 @@
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": {
-      "messageId": "sms-{{randomValue type='UUID'}}",
-      "status": "sent",
-      "recipient": "{{jsonPath request.body '$.recipient'}}",
-      "timestamp": "{{now format='yyyy-MM-dd HH:mm:ss'}}",
-      "deliveryTime": "{{randomValue type='NUMERIC' lower=1000 upper=5000}}",
-      "cost": "{{randomValue type='DECIMAL' lower=0.01 upper=0.10}}"
-    },
+    "body": "{\"messageId\": \"sms-{{randomValue type='UUID'}}\", \"status\": \"sent\", \"recipient\": \"{{jsonPath request.body '$.recipient'}}\", \"timestamp\": \"{{now format='yyyy-MM-dd HH:mm:ss'}}\", \"deliveryTime\": \"{{randomValue type='NUMERIC' lower=1000 upper=5000}}\", \"cost\": \"{{randomValue type='DECIMAL' lower=0.01 upper=0.10}}\"}",
     "transformers": ["response-template"]
   }
 }

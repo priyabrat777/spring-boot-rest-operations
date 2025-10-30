@@ -7,6 +7,7 @@ import com.enterprise.api.entity.FileMetadata;
 import com.enterprise.api.entity.Role;
 import com.enterprise.api.entity.User;
 import com.enterprise.api.repository.FileMetadataRepository;
+import com.enterprise.api.service.external.FileStorageServiceClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,9 @@ class FileServiceImplTest {
     @Mock
     private FileMetadataRepository fileMetadataRepository;
 
+    @Mock
+    private com.enterprise.api.service.external.FileStorageServiceClient fileStorageServiceClient;
+
     private FileServiceImpl fileService;
 
     @TempDir
@@ -58,7 +62,7 @@ class FileServiceImplTest {
     @BeforeEach
     void setUp() {
         // Create FileService instance manually
-        fileService = new FileServiceImpl(fileMetadataRepository);
+        fileService = new FileServiceImpl(fileMetadataRepository, fileStorageServiceClient);
         
         // Set up test configuration
         ReflectionTestUtils.setField(fileService, "uploadDir", tempDir.toString());
@@ -67,6 +71,11 @@ class FileServiceImplTest {
         
         // Initialize file storage manually for testing
         ReflectionTestUtils.invokeMethod(fileService, "initializeFileStorage");
+        
+        // Setup default mock behavior for external service client (lenient to avoid unnecessary stubbing)
+        lenient().when(fileStorageServiceClient.uploadFile(any(), anyString())).thenReturn(true);
+        lenient().when(fileStorageServiceClient.downloadFile(anyString())).thenReturn(null); // Fallback to local
+        lenient().when(fileStorageServiceClient.deleteFile(anyString())).thenReturn(true);
 
         // Create test users
         testUser = new User();

@@ -7,8 +7,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * Cache configuration for performance optimization.
  * 
@@ -44,20 +42,19 @@ public class CacheConfig {
      * @return CacheManager instance
      */
     @Bean
-    @Profile({"dev", "test"})
+    @Profile({ "dev", "test" })
     public CacheManager cacheManager() {
         ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager();
         cacheManager.setCacheNames(java.util.Arrays.asList(
-            USERS_CACHE,
-            ROLES_CACHE,
-            PERMISSIONS_CACHE,
-            USER_ROLES_CACHE,
-            AUDIT_STATS_CACHE,
-            FILE_METADATA_CACHE,
-            OTP_CACHE,
-            CAPTCHA_CACHE
-        ));
-        cacheManager.setAllowNullValues(false);
+                USERS_CACHE,
+                ROLES_CACHE,
+                PERMISSIONS_CACHE,
+                USER_ROLES_CACHE,
+                AUDIT_STATS_CACHE,
+                FILE_METADATA_CACHE,
+                OTP_CACHE,
+                CAPTCHA_CACHE));
+        cacheManager.setAllowNullValues(true);
         return cacheManager;
     }
 
@@ -76,16 +73,15 @@ public class CacheConfig {
         // but with different configuration
         ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager();
         cacheManager.setCacheNames(java.util.Arrays.asList(
-            USERS_CACHE,
-            ROLES_CACHE,
-            PERMISSIONS_CACHE,
-            USER_ROLES_CACHE,
-            AUDIT_STATS_CACHE,
-            FILE_METADATA_CACHE,
-            OTP_CACHE,
-            CAPTCHA_CACHE
-        ));
-        cacheManager.setAllowNullValues(false);
+                USERS_CACHE,
+                ROLES_CACHE,
+                PERMISSIONS_CACHE,
+                USER_ROLES_CACHE,
+                AUDIT_STATS_CACHE,
+                FILE_METADATA_CACHE,
+                OTP_CACHE,
+                CAPTCHA_CACHE));
+        cacheManager.setAllowNullValues(true);
         return cacheManager;
     }
 }

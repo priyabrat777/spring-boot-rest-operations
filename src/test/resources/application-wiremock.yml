@@ -1,0 +1,70 @@
+# WireMock test configuration
+spring:
+  datasource:
+    url: jdbc:h2:mem:wiremockdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: embedded
+
+# Minimal logging for WireMock tests
+logging:
+  level:
+    com.enterprise.api: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+    com.github.tomakehurst.wiremock: INFO
+
+# Test specific application settings
+app:
+  jwt:
+    secret: testSecretKeyForWireMockTestsOnly32CharsLong123456789
+    expiration: 60000 # 1 minute for fast test execution
+  
+  file:
+    upload-dir: ./test-uploads
+    max-size: 1048576 # 1MB for tests
+  
+  captcha:
+    expiration: 60000 # 1 minute for tests
+  
+  otp:
+    expiration: 60000 # 1 minute for tests
+  
+  # External service configuration for WireMock tests
+  external:
+    email:
+      enabled: true
+    sms:
+      enabled: true
+    file-storage:
+      enabled: true
+    timeout:
+      connect: 5000
+      read: 10000
+
+# Disable SpringDoc for tests to avoid compatibility issues
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# WireMock specific configuration
+wiremock:
+  server:
+    port: 0 # Dynamic port
+    files: classpath:wiremock

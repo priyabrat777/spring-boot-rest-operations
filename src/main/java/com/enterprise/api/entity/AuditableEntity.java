@@ -49,6 +49,30 @@ public abstract class AuditableEntity {
         // Default constructor for JPA
     }
 
+    @PrePersist
+    protected void onCreate() {
+        if (createdDate == null) {
+            createdDate = LocalDateTime.now();
+        }
+        if (lastModifiedDate == null) {
+            lastModifiedDate = LocalDateTime.now();
+        }
+        if (createdBy == null) {
+            createdBy = "SYSTEM";
+        }
+        if (lastModifiedBy == null) {
+            lastModifiedBy = "SYSTEM";
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        lastModifiedDate = LocalDateTime.now();
+        if (lastModifiedBy == null) {
+            lastModifiedBy = "SYSTEM";
+        }
+    }
+
     // Getters and Setters
     public LocalDateTime getCreatedDate() {
         return createdDate;

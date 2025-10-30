@@ -4,10 +4,9 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,12 +14,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for OpenAPI configuration.
  * Validates OpenAPI specification generation and security scheme configuration.
  */
-@SpringBootTest
-@ActiveProfiles("test")
 class OpenApiConfigTest {
 
-    @Autowired
     private OpenApiConfig openApiConfig;
+
+    @BeforeEach
+    void setUp() {
+        openApiConfig = new OpenApiConfig();
+        // Set the required properties using reflection
+        ReflectionTestUtils.setField(openApiConfig, "serverPort", "8080");
+        ReflectionTestUtils.setField(openApiConfig, "applicationName", "Enterprise Spring Boot API");
+    }
 
     @Test
     void shouldCreateOpenAPIConfiguration() {
@@ -59,7 +63,7 @@ class OpenApiConfigTest {
 
         // Then
         assertThat(openAPI.getComponents().getSecuritySchemes()).hasSize(2);
-        
+
         // JWT Security Scheme
         SecurityScheme jwtScheme = openAPI.getComponents().getSecuritySchemes().get("bearerAuth");
         assertThat(jwtScheme).isNotNull();

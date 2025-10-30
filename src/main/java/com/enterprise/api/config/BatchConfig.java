@@ -1,8 +1,8 @@
 package com.enterprise.api.config;
 
+import org.springframework.batch.core.Job;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.support.DefaultBatchConfiguration;
-import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
@@ -14,6 +14,8 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Spring Batch configuration class that sets up the batch processing infrastructure.
@@ -43,7 +45,7 @@ public class BatchConfig extends DefaultBatchConfiguration {
      * @return PlatformTransactionManager for batch operations
      */
     @Override
-    @Bean
+    @Bean("batchTransactionManager")
     public PlatformTransactionManager getTransactionManager() {
         return new DataSourceTransactionManager(dataSource);
     }
@@ -77,5 +79,27 @@ public class BatchConfig extends DefaultBatchConfiguration {
         executor.setConcurrencyLimit(5); // Limit concurrent batch jobs
         executor.setThreadNamePrefix("batch-");
         return executor;
+    }
+
+    /**
+     * Creates a job registry map that contains all available batch jobs.
+     * This registry is used by the BatchController and BatchJobMonitoringService
+     * to look up jobs by name.
+     * 
+     * @param userDataProcessingJob the user data processing job
+     * @param userDataProcessingByRoleJob the user data processing by role job
+     * @param recentUserDataProcessingJob the recent user data processing job
+     * @return Map of job names to Job instances
+     */
+    @Bean("customJobRegistry")
+    public Map<String, Job> customJobRegistry(
+            Job userDataProcessingJob,
+            Job userDataProcessingByRoleJob,
+            Job recentUserDataProcessingJob) {
+        Map<String, Job> registry = new HashMap<>();
+        registry.put("userDataProcessingJob", userDataProcessingJob);
+        registry.put("userDataProcessingByRoleJob", userDataProcessingByRoleJob);
+        registry.put("recentUserDataProcessingJob", recentUserDataProcessingJob);
+        return registry;
     }
 }

@@ -42,7 +42,6 @@ import java.util.Map;
 @Tag(name = "Authentication", description = "Authentication and authorization operations including login, logout, token refresh, and user profile management")
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
