@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -19,11 +17,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.context.annotation.Import;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -35,9 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Unit tests for AuditController.
  * Tests all audit endpoints with proper security and validation.
  */
-@WebMvcTest(controllers = AuditController.class,
-    excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.enterprise.api.security.*"))
-@AutoConfigureMockMvc(addFilters = false)
+@WebMvcTest(controllers = AuditController.class)
+@AutoConfigureMockMvc
+@Import(com.enterprise.api.config.SecurityConfig.class)
 @TestPropertySource(properties = {
                 "spring.datasource.url=jdbc:h2:mem:testdb",
                 "spring.jpa.hibernate.ddl-auto=create-drop"
@@ -120,16 +118,15 @@ class AuditControllerTest {
                 // Mock the service in case security passes
                 when(auditService.findAll(any(Pageable.class))).thenReturn(sampleAuditPage);
 
-                // In test context, security might not be fully enforced, so we expect 200
-                // In a real application, this should return 403
+                // User role should not have access to audit logs
                 mockMvc.perform(get("/api/v1/audit"))
-                                .andExpect(status().isOk());
+                                .andExpect(status().isForbidden());
         }
 
         @Test
-        void getAllAuditLogs_WithoutAuthentication_ShouldReturnUnauthorized() throws Exception {
+        void getAllAuditLogs_WithoutAuthentication_ShouldReturnForbidden() throws Exception {
                 mockMvc.perform(get("/api/v1/audit"))
-                                .andExpect(status().isUnauthorized());
+                                .andExpect(status().isForbidden());
         }
 
         @Test
@@ -168,10 +165,9 @@ class AuditControllerTest {
                                 any(LocalDateTime.class), any(Pageable.class)))
                                 .thenReturn(sampleAuditPage);
 
-                // In test context, security might not be fully enforced, so we expect 200
-                // In a real application, this should return 403
+                // Different user should not have access to other user's audit logs
                 mockMvc.perform(get("/api/v1/audit/user/testuser"))
-                                .andExpect(status().isOk());
+                                .andExpect(status().isForbidden());
         }
 
         @Test

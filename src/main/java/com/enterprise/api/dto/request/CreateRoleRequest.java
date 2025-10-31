@@ -55,6 +55,7 @@ public class CreateRoleRequest {
         this.description = description;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isSystemRole() {
         return systemRole;
     }

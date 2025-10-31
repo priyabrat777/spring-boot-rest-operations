@@ -50,44 +50,44 @@ class ComprehensiveSecurityTest {
     @WithMockUser(roles = "ADMIN") // Need admin role to create users
     void testComprehensiveInputSanitization() throws Exception {
         String[] maliciousInputs = {
-            // XSS attempts
-            "<script>alert('xss')</script>",
-            "<img src=x onerror=alert('xss')>",
-            "javascript:alert('xss')",
-            
-            // SQL injection attempts
-            "'; DROP TABLE users; --",
-            "admin' OR '1'='1",
-            "1' UNION SELECT * FROM users --",
-            
-            // Command injection attempts
-            "; ls -la",
-            "| cat /etc/passwd",
-            "&& rm -rf /",
-            
-            // Path traversal attempts
-            "../../../etc/passwd",
-            "..\\..\\..\\windows\\system32\\config\\sam",
-            
-            // LDAP injection attempts
-            "*)(uid=*",
-            "*)(|(uid=*))",
-            
-            // NoSQL injection attempts
-            "{ \"$ne\": null }",
-            "{ \"$gt\": \"\" }",
-            
-            // Format string attacks
-            "%s%s%s%s%s%s%s%s%s%s",
-            "%x%x%x%x%x%x%x%x%x%x",
-            
-            // Null byte injection
-            "test\u0000.txt",
-            "admin\u0000",
-            
-            // Unicode attacks
-            "admin\uFEFF",
-            "admin\u200B"
+                // XSS attempts
+                "<script>alert('xss')</script>",
+                "<img src=x onerror=alert('xss')>",
+                "javascript:alert('xss')",
+
+                // SQL injection attempts
+                "'; DROP TABLE users; --",
+                "admin' OR '1'='1",
+                "1' UNION SELECT * FROM users --",
+
+                // Command injection attempts
+                "; ls -la",
+                "| cat /etc/passwd",
+                "&& rm -rf /",
+
+                // Path traversal attempts
+                "../../../etc/passwd",
+                "..\\..\\..\\windows\\system32\\config\\sam",
+
+                // LDAP injection attempts
+                "*)(uid=*",
+                "*)(|(uid=*))",
+
+                // NoSQL injection attempts
+                "{ \"$ne\": null }",
+                "{ \"$gt\": \"\" }",
+
+                // Format string attacks
+                "%s%s%s%s%s%s%s%s%s%s",
+                "%x%x%x%x%x%x%x%x%x%x",
+
+                // Null byte injection
+                "test\u0000.txt",
+                "admin\u0000",
+
+                // Unicode attacks
+                "admin\uFEFF",
+                "admin\u200B"
         };
 
         for (String maliciousInput : maliciousInputs) {
@@ -114,7 +114,7 @@ class ComprehensiveSecurityTest {
         mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(wrongPasswordRequest)))
-                .andExpect(status().is5xxServerError()); // May return 500 if user doesn't exist
+                .andExpect(status().is4xxClientError()); // Should return 401 for authentication failure
 
         // Test with non-existent user
         LoginRequest nonExistentRequest = new LoginRequest();
@@ -124,7 +124,7 @@ class ComprehensiveSecurityTest {
         mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(nonExistentRequest)))
-                .andExpect(status().is5xxServerError()); // May return 500 if user doesn't exist
+                .andExpect(status().is4xxClientError()); // Should return 401 for authentication failure
     }
 
     @Test
@@ -151,13 +151,13 @@ class ComprehensiveSecurityTest {
     @DisplayName("Test JWT token security")
     void testJwtTokenSecurity() throws Exception {
         String[] invalidTokens = {
-            "Bearer invalid.token.here",
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature",
-            "Bearer null",
-            "Bearer ",
-            "InvalidBearer token",
-            "Bearer <script>alert('xss')</script>",
-            "Bearer ../../../etc/passwd"
+                "Bearer invalid.token.here",
+                "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature",
+                "Bearer null",
+                "Bearer ",
+                "InvalidBearer token",
+                "Bearer <script>alert('xss')</script>",
+                "Bearer ../../../etc/passwd"
         };
 
         for (String invalidToken : invalidTokens) {
@@ -176,7 +176,9 @@ class ComprehensiveSecurityTest {
                 .header("Access-Control-Request-Method", "GET"))
                 .andExpect(status().isOk()); // OPTIONS requests are typically allowed
 
-        // Test that unauthorized origins are handled (they won't be forbidden, just no CORS headers)
+        // Test that unauthorized origins are handled (they won't be forbidden, just no
+        // CORS headers)
+        // Note: Some CORS configurations may block unauthorized origins with 403
         mockMvc.perform(options("/api/v1/users")
                 .header("Origin", "http://malicious-site.com")
                 .header("Access-Control-Request-Method", "GET"))
@@ -205,7 +207,7 @@ class ComprehensiveSecurityTest {
             mockMvc.perform(post("/api/v1/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().is5xxServerError()); // May return 500 for non-existent user
+                    .andExpect(status().is4xxClientError()); // Should return 401 for authentication failure
         }
 
         // Note: Rate limiting implementation depends on your specific strategy
@@ -218,29 +220,30 @@ class ComprehensiveSecurityTest {
     void testFileUploadSecurity() throws Exception {
         // Test malicious file types
         String[] maliciousFileTypes = {
-            "malware.exe",
-            "script.bat",
-            "virus.com",
-            "trojan.scr",
-            "backdoor.pif"
+                "malware.exe",
+                "script.bat",
+                "virus.com",
+                "trojan.scr",
+                "backdoor.pif"
         };
 
         for (String filename : maliciousFileTypes) {
             byte[] maliciousContent = "malicious content".getBytes();
-            
+
             mockMvc.perform(multipart("/api/files/upload")
                     .file("file", maliciousContent)
                     .param("filename", filename))
-                    .andExpect(status().is5xxServerError()); // May return 500 due to NullPointerException
+                    .andExpect(status().is4xxClientError()); // Should return 403 for authentication required
         }
 
-        // Test oversized files (this might not work in test environment without proper configuration)
+        // Test oversized files (this might not work in test environment without proper
+        // configuration)
         byte[] oversizedFile = new byte[1024 * 1024]; // 1MB (within test limits)
-        
+
         mockMvc.perform(multipart("/api/files/upload")
                 .file("file", oversizedFile)
                 .param("filename", "large.txt"))
-                .andExpect(status().is5xxServerError()); // May return 500 due to NullPointerException
+                .andExpect(status().is4xxClientError()); // Should return 403 for authentication required
     }
 
     @Test
@@ -257,7 +260,7 @@ class ComprehensiveSecurityTest {
                 .header("Cookie", "JSESSIONID=FIXED_SESSION_ID")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().is5xxServerError()); // May return 500 for non-existent user
+                .andExpect(status().is4xxClientError()); // Should return 401 for authentication failure
     }
 
     @Test
@@ -265,13 +268,13 @@ class ComprehensiveSecurityTest {
     @WithMockUser(roles = "ADMIN") // Need admin role to create users
     void testPasswordSecurityRequirements() throws Exception {
         String[] weakPasswords = {
-            "123",                 // Too short
-            "password",            // No complexity
-            "PASSWORD",            // No lowercase
-            "12345678",            // No letters
-            "Password",            // No numbers/special chars
-            "password123!",        // No uppercase
-            "PASSWORD123!"         // No lowercase
+                "123", // Too short
+                "password", // No complexity
+                "PASSWORD", // No lowercase
+                "12345678", // No letters
+                "Password", // No numbers/special chars
+                "password123!", // No uppercase
+                "PASSWORD123!" // No lowercase
         };
 
         for (String weakPassword : weakPasswords) {
@@ -285,7 +288,7 @@ class ComprehensiveSecurityTest {
                     .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
         }
-        
+
         // Test a password that passes validation (to verify the system works)
         CreateUserRequest validRequest = new CreateUserRequest();
         validRequest.setUsername("user" + System.currentTimeMillis());
@@ -302,7 +305,8 @@ class ComprehensiveSecurityTest {
     @DisplayName("Test unauthorized access to protected endpoints")
     void testUnauthorizedAccess() throws Exception {
         // Test that protected endpoints require authentication
-        // Note: May return 403 (Forbidden) instead of 401 (Unauthorized) depending on security configuration
+        // Note: May return 403 (Forbidden) instead of 401 (Unauthorized) depending on
+        // security configuration
         mockMvc.perform(get("/api/v1/users"))
                 .andExpect(status().is4xxClientError()); // Accept both 401 and 403
 
@@ -312,6 +316,6 @@ class ComprehensiveSecurityTest {
                 .andExpect(status().is4xxClientError()); // Accept both 401 and 403
 
         mockMvc.perform(get("/api/files/my-files"))
-                .andExpect(status().is5xxServerError()); // FileController returns 500 for authorization errors
+                .andExpect(status().is4xxClientError()); // Should return 401/403 for authorization errors
     }
 }

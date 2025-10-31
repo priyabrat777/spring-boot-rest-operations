@@ -46,7 +46,7 @@ public class ControllerTestConfig implements WebMvcConfigurer {
             SecurityContext securityContext = SecurityContextHolder.getContext();
             Authentication auth = securityContext.getAuthentication();
             
-            if (auth != null) {
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
                 return auth;
             }
             

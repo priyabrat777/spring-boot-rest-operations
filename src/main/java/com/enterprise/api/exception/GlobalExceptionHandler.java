@@ -13,6 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -138,6 +142,34 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(
             ex.getErrorCode(),
             ex.getMessage(),
+            request.getRequestURI(),
+            HttpStatus.UNAUTHORIZED.value()
+        );
+        errorResponse.setTraceId(MDC.get("traceId"));
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+    
+    @ExceptionHandler({BadCredentialsException.class, org.springframework.security.core.AuthenticationException.class})
+    public ResponseEntity<ErrorResponse> handleSpringAuthentication(org.springframework.security.core.AuthenticationException ex, HttpServletRequest request) {
+        logger.warn("Spring Security authentication error: {}", ex.getMessage());
+        
+        String errorCode = "AUTHENTICATION_FAILED";
+        String message = "Invalid credentials";
+        
+        if (ex instanceof BadCredentialsException) {
+            message = "Invalid username or password";
+        } else if (ex instanceof DisabledException) {
+            errorCode = "ACCOUNT_DISABLED";
+            message = "Account is disabled";
+        } else if (ex instanceof LockedException) {
+            errorCode = "ACCOUNT_LOCKED";
+            message = "Account is locked";
+        }
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+            errorCode,
+            message,
             request.getRequestURI(),
             HttpStatus.UNAUTHORIZED.value()
         );

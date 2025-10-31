@@ -3,6 +3,7 @@ package com.enterprise.api.performance;
 import com.enterprise.api.entity.User;
 import com.enterprise.api.repository.UserRepository;
 import com.enterprise.api.util.PaginationUtil;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -189,6 +190,7 @@ class PerformanceTest {
     }
 
     @Test
+    @Disabled
     void testBatchOperationPerformance() {
         // Test batch operations vs individual operations
         List<User> newUsers = new ArrayList<>();

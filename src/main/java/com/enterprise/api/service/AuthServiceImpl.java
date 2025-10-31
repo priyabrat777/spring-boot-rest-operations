@@ -12,14 +12,13 @@ import com.enterprise.api.security.CustomUserPrincipal;
 import com.enterprise.api.security.JwtTokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import com.enterprise.api.exception.AuthenticationException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,7 +51,6 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Autowired
     public AuthServiceImpl(
             AuthenticationManager authenticationManager,
             JwtTokenProvider jwtTokenProvider,
@@ -105,20 +103,16 @@ public class AuthServiceImpl implements AuthService {
 
         } catch (BadCredentialsException e) {
             logger.warn("Invalid credentials for user: {}", loginRequest.getUsernameOrEmail());
-            throw new AuthenticationException("Invalid username/email or password") {
-            };
+            throw e;
         } catch (DisabledException e) {
             logger.warn("Account disabled for user: {}", loginRequest.getUsernameOrEmail());
-            throw new AuthenticationException("Account is disabled") {
-            };
+            throw e;
         } catch (LockedException e) {
             logger.warn("Account locked for user: {}", loginRequest.getUsernameOrEmail());
-            throw new AuthenticationException("Account is locked") {
-            };
+            throw e;
         } catch (Exception e) {
             logger.error("Authentication failed for user: {}", loginRequest.getUsernameOrEmail(), e);
-            throw new AuthenticationException("Authentication failed") {
-            };
+            throw new BadCredentialsException("Authentication failed");
         }
     }
 
@@ -148,14 +142,12 @@ public class AuthServiceImpl implements AuthService {
         try {
             // Validate the refresh token
             if (!jwtTokenProvider.validateToken(refreshToken)) {
-                throw new AuthenticationException("Invalid refresh token") {
-                };
+                throw new BadCredentialsException("Invalid refresh token");
             }
 
             // Check if it's actually a refresh token
             if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
-                throw new AuthenticationException("Token is not a refresh token") {
-                };
+                throw new BadCredentialsException("Token is not a refresh token");
             }
 
             // Extract user information from refresh token
@@ -184,8 +176,7 @@ public class AuthServiceImpl implements AuthService {
 
         } catch (Exception e) {
             logger.error("Token refresh failed", e);
-            throw new AuthenticationException("Token refresh failed: " + e.getMessage()) {
-            };
+            throw new BadCredentialsException("Token refresh failed: " + e.getMessage());
         }
     }
 
@@ -284,8 +275,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (!user.isAccountNonExpired()) {
-            throw new AuthenticationException("Account has expired") {
-            };
+            throw new BadCredentialsException("Account has expired");
         }
 
         if (!user.isAccountNonLocked()) {
@@ -293,8 +283,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (!user.isCredentialsNonExpired()) {
-            throw new AuthenticationException("Credentials have expired") {
-            };
+            throw new BadCredentialsException("Credentials have expired");
         }
     }
 

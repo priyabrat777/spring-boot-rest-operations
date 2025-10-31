@@ -26,6 +26,7 @@ public class UserDataProcessor implements ItemProcessor<User, UserDataDto> {
 
     private String jobExecutionUser;
     private Long jobExecutionId;
+    private boolean simulateFailures = true; // Flag to control failure simulation
 
     @BeforeStep
     public void beforeStep(StepExecution stepExecution) {
@@ -128,16 +129,16 @@ public class UserDataProcessor implements ItemProcessor<User, UserDataDto> {
      * @throws RuntimeException if processing should fail for this item
      */
     private void simulateProcessingWithPotentialFailure(UserDataDto dto) {
-        // Simulate a 5% failure rate for demonstration
-        if (random.nextDouble() < 0.05) {
+        // Only simulate failures if enabled (disabled during testing)
+        if (simulateFailures && random.nextDouble() < 0.05) {
             String errorMsg = "Simulated processing failure for user: " + dto.getUsername();
             logger.error(errorMsg);
             throw new RuntimeException(errorMsg);
         }
 
-        // Simulate processing delay
+        // Simulate processing delay (reduced for testing)
         try {
-            Thread.sleep(10); // Small delay to simulate processing time
+            Thread.sleep(simulateFailures ? 10 : 1); // Shorter delay during testing
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Processing interrupted", e);
@@ -167,5 +168,15 @@ public class UserDataProcessor implements ItemProcessor<User, UserDataDto> {
         }
 
         return false;
+    }
+
+    /**
+     * Sets whether to simulate processing failures.
+     * Used primarily for testing to ensure predictable behavior.
+     * 
+     * @param simulateFailures true to enable failure simulation, false to disable
+     */
+    public void setSimulateFailures(boolean simulateFailures) {
+        this.simulateFailures = simulateFailures;
     }
 }

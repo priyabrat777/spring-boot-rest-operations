@@ -1,6 +1,7 @@
 package com.enterprise.api.dto.request;
 
 import com.enterprise.api.validation.PasswordComplexity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -63,6 +64,7 @@ public class ChangePasswordRequest {
      * 
      * @return true if passwords match
      */
+    @JsonIgnore
     public boolean isPasswordConfirmed() {
         return newPassword != null && newPassword.equals(confirmPassword);
     }

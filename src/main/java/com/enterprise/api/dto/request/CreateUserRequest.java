@@ -41,7 +41,8 @@ public class CreateUserRequest {
     private List<Long> roleIds;
 
     // Constructors
-    public CreateUserRequest() {}
+    public CreateUserRequest() {
+    }
 
     public CreateUserRequest(String username, String password, String email) {
         this.username = username;
@@ -90,6 +91,7 @@ public class CreateUserRequest {
         this.lastName = lastName;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isEnabled() {
         return enabled;
     }

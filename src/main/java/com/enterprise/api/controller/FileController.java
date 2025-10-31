@@ -81,6 +81,10 @@ public class FileController {
             @RequestParam(value = "publicAccess", required = false, defaultValue = "false") Boolean publicAccess,
             @AuthenticationPrincipal CustomUserPrincipal principal) {
         
+        if (principal == null) {
+            throw new SecurityException("Authentication required");
+        }
+        
         logger.info("File upload request from user: {}", principal.getUsername());
 
         User user = getUserFromPrincipal(principal);
@@ -176,6 +180,10 @@ public class FileController {
             @PathVariable Long fileId,
             @AuthenticationPrincipal CustomUserPrincipal principal) {
         
+        if (principal == null) {
+            throw new SecurityException("Authentication required");
+        }
+        
         logger.info("File deletion request: {} from user: {}", fileId, principal.getUsername());
 
         User user = getUserFromPrincipal(principal);
@@ -193,6 +201,10 @@ public class FileController {
     public ResponseEntity<Page<FileMetadataResponse>> listMyFiles(
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal CustomUserPrincipal principal) {
+        
+        if (principal == null) {
+            throw new SecurityException("Authentication required");
+        }
         
         User user = getUserFromPrincipal(principal);
         Page<FileMetadataResponse> files = fileService.listUserFiles(user, pageable);
@@ -257,6 +269,10 @@ public class FileController {
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<FileService.FileStatistics> getUserFileStatistics(
             @AuthenticationPrincipal CustomUserPrincipal principal) {
+        
+        if (principal == null) {
+            throw new SecurityException("Authentication required");
+        }
         
         User user = getUserFromPrincipal(principal);
         FileService.FileStatistics statistics = fileService.getUserFileStatistics(user);

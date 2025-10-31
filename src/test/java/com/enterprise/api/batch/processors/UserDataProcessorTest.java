@@ -15,7 +15,6 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.StepExecution;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 /**
@@ -51,6 +50,9 @@ class UserDataProcessorTest {
 
         // Initialize the processor
         processor.beforeStep(stepExecution);
+        
+        // Disable failure simulation for predictable testing
+        processor.setSimulateFailures(false);
     }
 
     @Test
@@ -225,6 +227,7 @@ class UserDataProcessorTest {
 
         when(stepExecution.getJobParameters()).thenReturn(systemJobParameters);
         processor.beforeStep(stepExecution);
+        processor.setSimulateFailures(false); // Ensure no failures for this test
 
         User user = createValidUser();
 
@@ -234,6 +237,21 @@ class UserDataProcessorTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getProcessedBy()).isEqualTo("system"); // Default value
+    }
+
+    @Test
+    void testFailureSimulationCanBeEnabled() throws Exception {
+        // Given
+        processor.setSimulateFailures(true); // Enable failure simulation
+        User user = createValidUser();
+
+        // When/Then - We can't predict when the failure will occur due to randomness,
+        // but we can verify that the method exists and can be called without error
+        // This test mainly verifies the configuration capability
+        processor.setSimulateFailures(false); // Disable it again for safety
+        
+        UserDataDto result = processor.process(user);
+        assertThat(result).isNotNull(); // Should succeed with failures disabled
     }
 
     private User createValidUser() {

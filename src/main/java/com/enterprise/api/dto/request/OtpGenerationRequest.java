@@ -101,10 +101,12 @@ public class OtpGenerationRequest {
     }
 
     // Validation methods
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isEmailType() {
         return type == OtpType.EMAIL;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isSmsType() {
         return type == OtpType.SMS;
     }

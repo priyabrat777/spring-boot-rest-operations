@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -144,6 +145,21 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getErrorCode()).isEqualTo("AUTHENTICATION_FAILED");
+    }
+    
+    @Test
+    void shouldHandleSpringAuthenticationException() {
+        // Given
+        BadCredentialsException exception = new BadCredentialsException("Invalid username or password");
+        
+        // When
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleSpringAuthentication(exception, request);
+        
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("AUTHENTICATION_FAILED");
+        assertThat(response.getBody().getMessage()).isEqualTo("Invalid username or password");
     }
     
     @Test

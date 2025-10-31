@@ -79,6 +79,7 @@ public class OtpValidationRequest {
         this.purpose = purpose;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isConsumeOnValidation() {
         return consumeOnValidation;
     }
