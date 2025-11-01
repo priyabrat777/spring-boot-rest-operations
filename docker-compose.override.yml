@@ -1,12 +1,10 @@
 # Docker Compose override for development environment
 # This file is automatically loaded by docker-compose and extends docker-compose.yml
 
-version: '3.8'
-
 services:
   enterprise-api:
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DEVTOOLS_RESTART_ENABLED=true
       - LOGGING_LEVEL_COM_ENTERPRISE=DEBUG
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=DEBUG
@@ -19,9 +17,7 @@ services:
     ports:
       - "8080:8080"
       - "5005:5005"
-    command: >
-      sh -c "java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-             $$JAVA_OPTS -jar app.jar"
+    command: ["sh", "-c", "java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 $$JAVA_OPTS -jar app.jar"]
 
   # Enable development tools
   adminer:

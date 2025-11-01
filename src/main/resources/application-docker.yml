@@ -1,0 +1,84 @@
+# Docker environment configuration
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/enterprise_db
+    driver-class-name: org.postgresql.Driver
+    username: enterprise_user
+    password: enterprise_pass
+    hikari:
+      pool-name: EnterpriseAPIDockerPool
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      auto-commit: false
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      register-mbeans: true
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        "[format_sql]": true
+        "[use_sql_comments]": true
+        jdbc:
+          "[batch_size]": 20
+        "[order_inserts]": true
+        "[order_updates]": true
+        connection:
+          "[provider_disables_autocommit]": true
+        query:
+          "[in_clause_parameter_padding]": true
+          "[plan_cache_max_size]": 2048
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+# Logging for Docker
+logging:
+  level:
+    com.enterprise.api: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Docker specific settings
+app:
+  jwt:
+    secret: ${JWT_SECRET:dockerSecretKeyForProductionMustBe32CharsLong123456789}
+    expiration: ${JWT_EXPIRATION:86400000} # 24 hours
+  
+  file:
+    upload-dir: /app/uploads
+  
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080}
+
+# Management endpoints for Docker
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
