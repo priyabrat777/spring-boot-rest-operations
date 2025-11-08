@@ -107,22 +107,12 @@ pipeline {
             }
             post {
                 always {
-                    // Publish test results
-                    publishTestResults testResultsPattern: 'target/surefire-reports/*.xml'
+                    // Publish test results using standard junit step
+                    junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
                     
-                    // Archive test reports
+                    // Archive test reports and coverage
                     archiveArtifacts artifacts: 'target/surefire-reports/**/*', allowEmptyArchive: true
-                    
-                    // Publish JaCoCo coverage report
-                    publishCoverage adapters: [
-                        jacocoAdapter('target/site/jacoco/jacoco.xml')
-                    ], sourceFileResolver: sourceFiles('STORE_LAST_BUILD')
-                }
-                failure {
-                    script {
-                        currentBuild.result = 'FAILURE'
-                        error "Unit tests failed"
-                    }
+                    archiveArtifacts artifacts: 'target/site/jacoco/**/*', allowEmptyArchive: true
                 }
             }
         }
@@ -145,17 +135,11 @@ pipeline {
             }
             post {
                 always {
-                    // Publish integration test results
-                    publishTestResults testResultsPattern: 'target/failsafe-reports/*.xml'
+                    // Publish integration test results using standard junit step
+                    junit testResults: 'target/failsafe-reports/*.xml', allowEmptyResults: true
                     
                     // Archive integration test reports
                     archiveArtifacts artifacts: 'target/failsafe-reports/**/*', allowEmptyArchive: true
-                }
-                failure {
-                    script {
-                        currentBuild.result = 'FAILURE'
-                        error "Integration tests failed"
-                    }
                 }
             }
         }
