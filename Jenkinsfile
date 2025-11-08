@@ -1,12 +1,12 @@
 pipeline {
     agent any
     
-    tools {
-        maven 'Maven-3.9.0'
-        jdk 'JDK-21'
-    }
-    
     environment {
+        // Java and Maven paths
+        JAVA_HOME = '/opt/java/openjdk'
+        MAVEN_HOME = '/opt/maven'
+        PATH = "${JAVA_HOME}/bin:${MAVEN_HOME}/bin:${env.PATH}"
+        
         MAVEN_OPTS = '-Xmx1024m -XX:MaxPermSize=256m'
         SONAR_TOKEN = credentials('sonar-token')
         GITHUB_TOKEN = credentials('github-token')
@@ -53,16 +53,16 @@ pipeline {
         stage('Build Setup') {
             steps {
                 script {
-                    // Clean workspace and prepare build environment
-                    sh 'mvn clean'
-                    
-                    // Validate Maven configuration
-                    sh 'mvn validate'
-                    
-                    // Display build information
                     echo "Building version: ${env.BUILD_VERSION}"
-                    echo "Java version: ${sh(script: 'java -version 2>&1 | head -1', returnStdout: true).trim()}"
-                    echo "Maven version: ${sh(script: 'mvn -version | head -1', returnStdout: true).trim()}"
+                    echo "JAVA_HOME: ${env.JAVA_HOME}"
+                    echo "MAVEN_HOME: ${env.MAVEN_HOME}"
+                    
+                    // Display versions
+                    sh 'java -version'
+                    sh 'mvn -version'
+                    
+                    // Clean and validate
+                    sh 'mvn clean validate'
                 }
             }
         }
@@ -595,16 +595,13 @@ def sendNotification(Map config) {
         mimeType: 'text/html'
     )
     
-    // Slack notification (if configured)
-    try {
-        slackSend(
-            channel: '#ci-cd',
-            color: color,
-            message: "${message}\nBuild: ${env.BUILD_URL}"
-        )
-    } catch (Exception e) {
-        echo "Slack notification failed: ${e.getMessage()}"
-    }
+    // Slack notification disabled - plugin not installed
+    // Uncomment and install Slack plugin if needed:
+    // slackSend(
+    //     channel: '#ci-cd',
+    //     color: color,
+    //     message: "${message}\nBuild: ${env.BUILD_URL}"
+    // )
 }
 
 // Helper function to get status color for notifications
