@@ -7,7 +7,8 @@ pipeline {
         MAVEN_HOME = '/opt/maven'
         PATH = "${JAVA_HOME}/bin:${MAVEN_HOME}/bin:${env.PATH}"
         
-        MAVEN_OPTS = '-Xmx1024m -XX:MaxPermSize=256m'
+        // Maven options (MaxPermSize removed - not needed in Java 8+)
+        MAVEN_OPTS = '-Xmx1024m -Xms256m'
         SONAR_TOKEN = credentials('sonar-token')
         GITHUB_TOKEN = credentials('github-token')
         DOCKER_REGISTRY = 'ghcr.io'
